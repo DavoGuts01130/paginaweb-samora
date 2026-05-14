@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -12,15 +12,188 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: #000000;
 }
 
 body {
-  background: var(--background);
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.045), transparent 32rem),
+    radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.035), transparent 30rem),
+    #000000;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: #ffffff;
+  color: #000000;
+}
+
+img,
+video {
+  max-width: 100%;
+}
+
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  transition-property:
+    color,
+    background-color,
+    border-color,
+    opacity,
+    transform,
+    box-shadow;
+  transition-duration: 220ms;
+  transition-timing-function: ease;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+/* Scrollbar premium */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  border: 2px solid #050505;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* Animaciones reutilizables */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+    filter: blur(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes soft-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+    filter: blur(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.7s ease-out both;
+}
+
+.animate-soft-scale {
+  animation: soft-scale 0.7s ease-out both;
+}
+
+/* Utilidades premium */
+.premium-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.025);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.premium-card-hover {
+  transition:
+    transform 240ms ease,
+    border-color 240ms ease,
+    background-color 240ms ease,
+    box-shadow 240ms ease;
+}
+
+.premium-card-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.premium-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.premium-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(
+    110deg,
+    transparent,
+    rgba(255, 255, 255, 0.35),
+    transparent
+  );
+  transition: transform 650ms ease;
+}
+
+.premium-button:hover::after {
+  transform: translateX(120%);
+}
+
+.image-premium {
+  transition:
+    transform 700ms ease,
+    opacity 500ms ease,
+    filter 500ms ease;
+}
+
+.group:hover .image-premium {
+  transform: scale(1.045);
+  filter: contrast(1.04);
 }
