@@ -16,9 +16,8 @@ export default function LoginButton() {
 
   return (
     <button
-      type="button"
       onClick={handleLogin}
-      className="premium-button flex min-h-12 w-full items-center justify-center rounded-full border border-white px-6 py-3 text-sm font-medium transition hover:bg-white hover:text-black sm:w-auto"
+      className="rounded-full border border-white px-6 py-3 text-sm transition hover:bg-white hover:text-black"
     >
       Continuar con Google
     </button>
