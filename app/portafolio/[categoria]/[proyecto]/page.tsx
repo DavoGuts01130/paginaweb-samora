@@ -2,6 +2,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import ProjectGallery from "@/components/ProjectGallery";
 import { supabase } from "@/lib/supabase";
+import type { CSSProperties } from "react";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,6 +22,10 @@ type ProjectQueryResult = {
   year: string | null;
   client: string | null;
   cover_image: string | null;
+  image_fit: string | null;
+  image_zoom: number | null;
+  image_x: number | null;
+  image_y: number | null;
   portfolio_categories:
     | {
         name: string;
@@ -55,6 +60,16 @@ function getImageHeights(count: number) {
   );
 }
 
+function getCoverImageStyle(project: ProjectQueryResult): CSSProperties {
+  return {
+    objectFit: project.image_fit === "contain" ? "contain" : "cover",
+    objectPosition: `${Number(project.image_x ?? 50)}% ${Number(
+      project.image_y ?? 50
+    )}%`,
+    transform: `scale(${Number(project.image_zoom ?? 1)})`,
+  };
+}
+
 export default async function ProyectoPage({ params }: ProjectPageProps) {
   const { categoria, proyecto } = await params;
 
@@ -69,6 +84,10 @@ export default async function ProyectoPage({ params }: ProjectPageProps) {
       year,
       client,
       cover_image,
+      image_fit,
+      image_zoom,
+      image_x,
+      image_y,
       portfolio_categories (
         name,
         slug
@@ -197,11 +216,12 @@ export default async function ProyectoPage({ params }: ProjectPageProps) {
           </div>
 
           {data.cover_image && (
-            <div className="mt-10 overflow-hidden rounded-[1.75rem] border border-white/10 md:mt-14 md:rounded-[2rem]">
+            <div className="mt-10 overflow-hidden rounded-[1.75rem] border border-white/10 bg-black md:mt-14 md:rounded-[2rem]">
               <img
                 src={data.cover_image}
                 alt={data.title}
-                className="h-[360px] w-full object-cover sm:h-[430px] md:h-[55vh]"
+                className="h-[360px] w-full sm:h-[430px] md:h-[55vh]"
+                style={getCoverImageStyle(data)}
               />
             </div>
           )}
