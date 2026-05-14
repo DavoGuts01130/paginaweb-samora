@@ -80,7 +80,7 @@ export default function EditProfileForm({ profile }: { profile: Profile }) {
           label="Teléfono"
           value={form.phone}
           onChange={(value) => updateField("phone", value)}
-          placeholder="Ej: 3192709536"
+          placeholder="Ej: 3001234567"
         />
 
         <Input
@@ -101,14 +101,14 @@ export default function EditProfileForm({ profile }: { profile: Profile }) {
           label="Dirección"
           value={form.address}
           onChange={(value) => updateField("address", value)}
-          placeholder="Ej: Carrera 6 #2-46"
+          placeholder="Ej: Calle 123 #45-67"
         />
 
         <Input
           label="Referencia"
           value={form.reference}
           onChange={(value) => updateField("reference", value)}
-          placeholder="Ej: Casa de tres pisos, frente al parque"
+          placeholder="Ej: Apartamento 302, casa azul"
         />
       </div>
 
