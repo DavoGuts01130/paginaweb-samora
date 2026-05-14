@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import FeaturedProjectsCarousel from "@/components/FeaturedProjectsCarousel";
 import { supabase } from "@/lib/supabase";
@@ -231,12 +230,10 @@ export default async function PortafolioPage() {
                                 : getImageHeight(index)
                             }`}
                           >
-                            <Image
+                            <img
                               src={project.cover_image}
                               alt={project.title}
-                              fill
-                              sizes="(max-width: 768px) 100vw, 50vw"
-                              className="image-premium"
+                              className="image-premium h-full w-full"
                               style={getImageStyle(project)}
                             />
 
