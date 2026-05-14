@@ -3,6 +3,9 @@ import Navbar from "@/components/Navbar";
 import ProjectGallery from "@/components/ProjectGallery";
 import { supabase } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type ProjectPageProps = {
   params: Promise<{
     categoria: string;
