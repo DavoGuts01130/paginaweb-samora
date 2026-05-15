@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
 };
 
-const HERO_IMAGE = "/hero.jpg";
+const HERO_IMAGE = "/hero.png";
 const HERO_VIDEO = "";
 const LOGO_IMAGE = "";
 
@@ -51,13 +51,13 @@ export default function Home() {
               <img
                 src={HERO_IMAGE}
                 alt="Fotografía profesional Samora Studio"
-                className="h-full w-full scale-105 object-cover opacity-35"
+                className="h-full w-full scale-105 object-cover opacity-90"
               />
             )}
 
-            <div className="absolute inset-0 bg-black/70" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/65 to-black/25" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/30 to-black/70" />
+              <div className="absolute inset-0 bg-black/20" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-black/20" />
           </div>
 
           {/* Glow */}
