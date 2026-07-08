@@ -1,16 +1,10 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import EditProjectForm from "@/components/EditProjectForm";
+import PortfolioCategoryManager from "@/components/PortfolioCategoryManager";
 import { createClient } from "@/lib/supabase/server";
 
-type PageProps = {
-  params: Promise<{ id: string }> | { id: string };
-};
-
-export default async function EditProjectPage({ params }: PageProps) {
-  const { id } = await params;
-
+export default async function AdminPortfolioCategoriesPage() {
   const supabase = await createClient();
 
   const {
@@ -29,40 +23,15 @@ export default async function EditProjectPage({ params }: PageProps) {
     redirect("/");
   }
 
-  const { data: project } = await supabase
-    .from("portfolio_projects")
-    .select(`
-      id,
-      title,
-      slug,
-      description,
-      category_id,
-      subcategory_id,
-      year,
-      client,
-      cover_image,
-      image_fit,
-      image_zoom,
-      image_x,
-      image_y,
-      is_featured,
-      featured_order,
-      display_order
-    `)
-    .eq("id", id)
-    .single();
-
-  if (!project) notFound();
-
   const { data: categories } = await supabase
     .from("portfolio_categories")
-    .select("id, name, slug, is_active")
+    .select("id, name, slug, description, position, is_active")
     .order("position", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
 
   const { data: subcategories } = await supabase
     .from("portfolio_subcategories")
-    .select("id, category_id, name, slug, is_active")
+    .select("id, category_id, name, slug, description, position, is_active")
     .order("position", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
 
@@ -71,7 +40,7 @@ export default async function EditProjectPage({ params }: PageProps) {
       <Navbar />
 
       <main className="min-h-screen bg-black pt-24 text-white">
-        <section className="mx-auto max-w-4xl px-6 py-12">
+        <section className="mx-auto max-w-7xl px-6 py-12">
           <Link
             href="/admin/portafolio"
             className="text-sm text-white/50 transition hover:text-white"
@@ -84,21 +53,20 @@ export default async function EditProjectPage({ params }: PageProps) {
               Administración
             </p>
 
-            <h1 className="mt-4 text-4xl font-bold md:text-5xl">
-              Editar proyecto
+            <h1 className="mt-4 text-4xl font-bold md:text-6xl">
+              Categorías
             </h1>
 
-            <p className="mt-4 text-white/55">
-              Ajusta la información general, categoría, subcategoría y portada
-              del proyecto.
+            <p className="mt-4 max-w-2xl text-white/55">
+              Organiza el portafolio por categorías principales y
+              subcategorías para que la navegación sea más clara.
             </p>
           </div>
 
-          <div className="mt-10">
-            <EditProjectForm
-              project={project}
-              categories={(categories ?? []).filter((category) => category.is_active !== false)}
-              subcategories={(subcategories ?? []).filter((subcategory) => subcategory.is_active !== false)}
+          <div className="mt-12">
+            <PortfolioCategoryManager
+              categories={categories ?? []}
+              subcategories={subcategories ?? []}
             />
           </div>
         </section>

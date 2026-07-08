@@ -2,82 +2,114 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formatFileSize, optimizeImageForWeb } from "@/lib/imageOptimizer";
 
 type Props = {
   value: string;
   onChange: (url: string) => void;
-  folder?: string;
 };
 
-export default function PortfolioImageUploader({
-  value,
-  onChange,
-  folder = "covers",
-}: Props) {
+export default function PortfolioImageUploader({ value, onChange }: Props) {
   const supabase = createClient();
+
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
 
   async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-
     if (!file) return;
 
     setUploading(true);
     setMessage("");
 
-    const ext = file.name.split(".").pop();
-    const fileName = `${crypto.randomUUID()}.${ext}`;
-    const filePath = `${folder}/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("portfolio")
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
+    try {
+      const optimizedFile = await optimizeImageForWeb(file, {
+        maxWidth: 2000,
+        maxHeight: 1400,
+        quality: 0.85,
+        outputType: "image/webp",
       });
 
-    if (uploadError) {
-      setMessage(`❌ Error subiendo imagen: ${uploadError.message}`);
+      const ext = optimizedFile.name.split(".").pop() || "webp";
+
+      const fileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${ext}`;
+
+      const filePath = `covers/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("portfolio")
+        .upload(filePath, optimizedFile, {
+          cacheControl: "31536000",
+          upsert: false,
+          contentType: optimizedFile.type,
+        });
+
+      if (uploadError) {
+        setMessage(`Error subiendo portada: ${uploadError.message}`);
+        setUploading(false);
+        return;
+      }
+
+      const { data } = supabase.storage.from("portfolio").getPublicUrl(filePath);
+
+      onChange(data.publicUrl);
+
+      setMessage(
+        `Portada optimizada. Peso original: ${formatFileSize(
+          file.size
+        )} → Peso web: ${formatFileSize(optimizedFile.size)}`
+      );
+
       setUploading(false);
-      return;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Error desconocido.";
+
+      setMessage(`Error procesando portada: ${errorMessage}`);
+      setUploading(false);
     }
-
-    const { data } = supabase.storage.from("portfolio").getPublicUrl(filePath);
-
-    onChange(data.publicUrl);
-    setMessage("✅ Imagen subida correctamente.");
-    setUploading(false);
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black p-5">
-      <h3 className="text-lg font-semibold">Imagen de portada</h3>
+    <div className="space-y-3">
+      {value && (
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
+          <img
+            src={value}
+            alt="Portada del proyecto"
+            className="h-48 w-full object-cover"
+          />
+        </div>
+      )}
 
-      <p className="mt-2 text-sm text-white/45">
-        Sube una imagen desde tu equipo o usa una URL externa como respaldo.
-      </p>
-
-      <label className="mt-5 flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-white/20 bg-white/[0.03] px-4 py-6 text-center text-sm text-white/55 transition hover:border-white/40 hover:text-white">
+      <label className="block cursor-pointer rounded-xl border border-dashed border-white/20 bg-black px-4 py-5 text-center text-sm text-white/60 transition hover:border-white/40 hover:text-white">
+        {uploading ? "Optimizando portada..." : "Subir portada optimizada"}
         <input
           type="file"
           accept="image/*"
           onChange={handleUpload}
-          disabled={uploading}
           className="hidden"
         />
-
-        {uploading ? "Subiendo imagen..." : "Seleccionar imagen desde mi equipo"}
       </label>
 
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="O pega aquí una URL de imagen"
-        className="mt-4 w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-white/40"
-      />
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className="text-sm text-white/45 transition hover:text-white"
+        >
+          Quitar portada
+        </button>
+      )}
 
-      {message && <p className="mt-3 text-sm text-white/55">{message}</p>}
+      <p className="text-xs text-white/35">
+        Recomendado para portadas: imagen horizontal. El archivo se convierte a
+        WebP automáticamente.
+      </p>
+
+      {message && <p className="text-sm text-white/50">{message}</p>}
     </div>
   );
 }

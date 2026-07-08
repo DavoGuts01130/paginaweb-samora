@@ -28,7 +28,14 @@ export default async function AdminPortafolioPage() {
 
   const { data: categories } = await supabase
     .from("portfolio_categories")
-    .select("id, name, slug")
+    .select("id, name, slug, is_active")
+    .order("position", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: true });
+
+  const { data: subcategories } = await supabase
+    .from("portfolio_subcategories")
+    .select("id, category_id, name, slug, is_active")
+    .order("position", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
 
   const { data: projects } = await supabase
@@ -47,7 +54,12 @@ export default async function AdminPortafolioPage() {
       is_featured,
       featured_order,
       display_order,
+      subcategory_id,
       portfolio_categories (
+        name,
+        slug
+      ),
+      portfolio_subcategories (
         name,
         slug
       ),
@@ -77,22 +89,35 @@ export default async function AdminPortafolioPage() {
             ← Volver al panel
           </Link>
 
-          <div className="mt-8">
-            <p className="text-sm uppercase tracking-[0.35em] text-white/35">
-              Administración
-            </p>
+          <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.35em] text-white/35">
+                Administración
+              </p>
 
-            <h1 className="mt-4 text-4xl font-bold md:text-6xl">
-              Portafolio
-            </h1>
+              <h1 className="mt-4 text-4xl font-bold md:text-6xl">
+                Portafolio
+              </h1>
 
-            <p className="mt-4 max-w-2xl text-white/55">
-              Crea y gestiona proyectos del portafolio sin tocar código.
-            </p>
+              <p className="mt-4 max-w-2xl text-white/55">
+                Crea y gestiona proyectos del portafolio con categoría principal
+                y subcategoría.
+              </p>
+            </div>
+
+            <Link
+              href="/admin/portafolio/categorias"
+              className="w-fit rounded-full border border-white/15 px-5 py-3 text-sm font-medium text-white/70 transition hover:border-white/40 hover:text-white"
+            >
+              Gestionar categorías →
+            </Link>
           </div>
 
           <div className="mt-12 grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-            <CreateProjectForm categories={categories ?? []} />
+            <CreateProjectForm
+              categories={(categories ?? []).filter((category) => category.is_active !== false)}
+              subcategories={(subcategories ?? []).filter((subcategory) => subcategory.is_active !== false)}
+            />
 
             <div>
               <h2 className="text-2xl font-semibold">Proyectos existentes</h2>
@@ -103,6 +128,10 @@ export default async function AdminPortafolioPage() {
                     const category = Array.isArray(project.portfolio_categories)
                       ? project.portfolio_categories[0]
                       : project.portfolio_categories;
+
+                    const subcategory = Array.isArray(project.portfolio_subcategories)
+                      ? project.portfolio_subcategories[0]
+                      : project.portfolio_subcategories;
 
                     const projectImages = Array.isArray(project.portfolio_images)
                       ? project.portfolio_images
@@ -138,6 +167,7 @@ export default async function AdminPortafolioPage() {
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-xs uppercase tracking-[0.25em] text-white/35">
                                 {category?.name ?? "Sin categoría"}
+                                {subcategory?.name ? ` · ${subcategory.name}` : ""}
                               </p>
 
                               {project.is_featured && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ImageAdjustControls from "@/components/ImageAdjustControls";
@@ -12,12 +12,20 @@ type Category = {
   slug: string;
 };
 
+type Subcategory = {
+  id: string;
+  category_id: string;
+  name: string;
+  slug: string;
+};
+
 type Project = {
   id: string;
   title: string;
   slug: string;
   description: string | null;
   category_id: string | null;
+  subcategory_id: string | null;
   year: string | null;
   client: string | null;
   cover_image: string | null;
@@ -33,20 +41,39 @@ type Project = {
 type Props = {
   project: Project;
   categories: Category[];
+  subcategories: Subcategory[];
 };
 
-export default function EditProjectForm({ project, categories }: Props) {
+export default function EditProjectForm({
+  project,
+  categories,
+  subcategories,
+}: Props) {
   const supabase = createClient();
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  const [selectedCategoryId, setSelectedCategoryId] = useState(
+    project.category_id ?? ""
+  );
+
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState(
+    project.subcategory_id ?? ""
+  );
+
   const [coverImage, setCoverImage] = useState(project.cover_image ?? "");
   const [imageFit, setImageFit] = useState(project.image_fit ?? "cover");
   const [imageZoom, setImageZoom] = useState(Number(project.image_zoom ?? 1));
   const [imageX, setImageX] = useState(Number(project.image_x ?? 50));
   const [imageY, setImageY] = useState(Number(project.image_y ?? 50));
+
+  const filteredSubcategories = useMemo(() => {
+    return subcategories.filter(
+      (subcategory) => subcategory.category_id === selectedCategoryId
+    );
+  }, [subcategories, selectedCategoryId]);
 
   const slugify = (text: string) =>
     text
@@ -73,7 +100,8 @@ export default function EditProjectForm({ project, categories }: Props) {
         title,
         slug,
         description: String(formData.get("description") || ""),
-        category_id: String(formData.get("category_id") || ""),
+        category_id: selectedCategoryId,
+        subcategory_id: selectedSubcategoryId || null,
         year: String(formData.get("year") || ""),
         client: String(formData.get("client") || ""),
         cover_image: coverImage,
@@ -112,17 +140,42 @@ export default function EditProjectForm({ project, categories }: Props) {
         <select
           name="category_id"
           required
-          defaultValue={project.category_id ?? ""}
-          aria-label="Selecciona categoría"
+          value={selectedCategoryId}
+          onChange={(event) => {
+            setSelectedCategoryId(event.target.value);
+            setSelectedSubcategoryId("");
+          }}
+          aria-label="Selecciona categoría principal"
           className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
         >
           <option value="" disabled>
-            Selecciona categoría
+            Selecciona categoría principal
           </option>
 
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          name="subcategory_id"
+          value={selectedSubcategoryId}
+          onChange={(event) => setSelectedSubcategoryId(event.target.value)}
+          disabled={!selectedCategoryId || filteredSubcategories.length === 0}
+          aria-label="Selecciona subcategoría"
+          className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <option value="">
+            {selectedCategoryId
+              ? "Sin subcategoría / seleccionar después"
+              : "Primero selecciona una categoría"}
+          </option>
+
+          {filteredSubcategories.map((subcategory) => (
+            <option key={subcategory.id} value={subcategory.id}>
+              {subcategory.name}
             </option>
           ))}
         </select>
