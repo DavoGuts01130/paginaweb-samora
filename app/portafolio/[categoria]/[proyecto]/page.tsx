@@ -36,6 +36,16 @@ type ProjectQueryResult = {
         slug: string;
       }[]
     | null;
+  portfolio_subcategories:
+    | {
+        name: string;
+        slug: string;
+      }
+    | {
+        name: string;
+        slug: string;
+      }[]
+    | null;
   portfolio_images:
     | {
         image_url: string;
@@ -92,6 +102,10 @@ export default async function ProyectoPage({ params }: ProjectPageProps) {
         name,
         slug
       ),
+      portfolio_subcategories (
+        name,
+        slug
+      ),
       portfolio_images (
         image_url,
         position
@@ -133,6 +147,10 @@ export default async function ProyectoPage({ params }: ProjectPageProps) {
   const category = Array.isArray(data.portfolio_categories)
     ? data.portfolio_categories[0]
     : data.portfolio_categories;
+
+  const subcategory = Array.isArray(data.portfolio_subcategories)
+    ? data.portfolio_subcategories[0]
+    : data.portfolio_subcategories;
 
   if (!category || category.slug !== categoria) {
     return (
@@ -179,6 +197,10 @@ export default async function ProyectoPage({ params }: ProjectPageProps) {
     height: heights[index],
   }));
 
+  const projectType = subcategory?.name
+    ? `${category.name} · ${subcategory.name}`
+    : category.name;
+
   return (
     <>
       <Navbar />
@@ -186,18 +208,18 @@ export default async function ProyectoPage({ params }: ProjectPageProps) {
       <main className="min-h-screen bg-black pt-24 text-white">
         <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-14">
           <Link
-            href="/portafolio"
+            href={`/portafolio/${category.slug}`}
             className="text-sm text-neutral-400 transition hover:text-white"
           >
-            ← Volver al portafolio
+            ← Volver a {category.name}
           </Link>
 
           <div className="mt-8 max-w-5xl md:mt-10">
-            <p className="text-sm uppercase tracking-[0.35em] text-neutral-500">
-              {category.name}
-            </p>
+            <div className="inline-flex max-w-full rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-[0.68rem] uppercase tracking-[0.24em] text-white/65">
+              {projectType}
+            </div>
 
-            <h1 className="mt-4 text-4xl font-bold leading-[1.05] tracking-[-0.04em] sm:text-5xl md:text-6xl xl:text-7xl">
+            <h1 className="mt-5 text-4xl font-bold leading-[1.05] tracking-[-0.04em] sm:text-5xl md:text-6xl xl:text-7xl">
               {data.title}
             </h1>
 
@@ -206,7 +228,7 @@ export default async function ProyectoPage({ params }: ProjectPageProps) {
               <Separator />
               <InfoMeta label="Año" value={data.year ?? "2026"} />
               <Separator />
-              <InfoMeta label="Tipo" value={category.name} />
+              <InfoMeta label="Tipo" value={projectType} />
             </div>
 
             <p className="mt-8 max-w-3xl text-base leading-7 text-neutral-400 md:text-xl md:leading-8">

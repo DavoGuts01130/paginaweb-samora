@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 
 type FeaturedProject = {
   id: string;
@@ -11,9 +12,24 @@ type FeaturedProject = {
   cover_image: string;
   categoryName: string;
   categorySlug: string;
+  subcategoryName?: string | null;
   client?: string | null;
   year?: string | number | null;
+  image_fit?: string | null;
+  image_zoom?: number | null;
+  image_x?: number | null;
+  image_y?: number | null;
 };
+
+function getImageStyle(project: FeaturedProject): CSSProperties {
+  return {
+    objectFit: project.image_fit === "contain" ? "contain" : "cover",
+    objectPosition: `${Number(project.image_x ?? 50)}% ${Number(
+      project.image_y ?? 50
+    )}%`,
+    transform: `scale(${Number(project.image_zoom ?? 1)})`,
+  };
+}
 
 export default function FeaturedProjectsCarousel({
   projects,
@@ -46,20 +62,28 @@ export default function FeaturedProjectsCarousel({
             alt={project.title}
             fill
             priority={index === 0}
-            className={`object-cover transition duration-1000 ${
+            className={`transition duration-1000 ${
               index === activeIndex
                 ? "scale-100 opacity-85"
                 : "scale-105 opacity-0"
             }`}
+            style={getImageStyle(project)}
           />
         ))}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-transparent to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/15 to-black/35" />
 
         <div className="absolute bottom-0 left-0 max-w-2xl p-8 md:p-10">
-          <p className="text-xs uppercase tracking-[0.35em] text-white/45">
+          <div className="inline-flex rounded-full border border-white/15 bg-black/45 px-4 py-2 text-[0.65rem] uppercase tracking-[0.28em] text-white/70 backdrop-blur-md">
             Proyecto destacado
+          </div>
+
+          <p className="mt-5 text-xs uppercase tracking-[0.3em] text-white/50">
+            {activeProject.categoryName}
+            {activeProject.subcategoryName
+              ? ` · ${activeProject.subcategoryName}`
+              : ""}
           </p>
 
           <h2 className="mt-3 text-3xl font-semibold md:text-5xl">
@@ -67,14 +91,14 @@ export default function FeaturedProjectsCarousel({
           </h2>
 
           {(activeProject.client || activeProject.year) && (
-            <p className="mt-3 text-sm text-white/45">
+            <p className="mt-3 text-sm text-white/50">
               {[activeProject.client, activeProject.year]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
           )}
 
-          <p className="mt-4 max-w-xl text-sm leading-6 text-white/55 md:text-base">
+          <p className="mt-4 max-w-xl text-sm leading-6 text-white/60 md:text-base">
             Cada proyecto se trabaja como una pieza visual propia: composición,
             luz, edición y entrega pensadas para transmitir una experiencia
             completa.
