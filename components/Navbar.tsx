@@ -17,13 +17,14 @@ const links = [
 ];
 
 export default function Navbar() {
-  const supabase = createClient();
   const pathname = usePathname();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
+    const supabase = createClient();
+
     async function getUser() {
       const {
         data: { user },
@@ -41,7 +42,7 @@ export default function Navbar() {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -87,15 +88,10 @@ export default function Navbar() {
           })}
         </div>
 
-        <div className="hidden items-center gap-4 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
           <CartNavLink />
 
-          <Link
-            href={isLoggedIn ? "/mi-cuenta" : "/login"}
-            className="premium-button rounded-full border border-white/40 px-5 py-2 text-sm transition hover:bg-white hover:text-black"
-          >
-            {isLoggedIn ? "Mi cuenta" : "Ingresar"}
-          </Link>
+          <AccountLink isLoggedIn={isLoggedIn} />
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
@@ -105,9 +101,25 @@ export default function Navbar() {
             type="button"
             onClick={() => setMenuOpen((current) => !current)}
             aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 text-lg text-white transition hover:bg-white hover:text-black"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white transition hover:bg-white hover:text-black"
           >
-            {menuOpen ? "×" : "☰"}
+            {menuOpen ? (
+              <span className="text-2xl leading-none">×</span>
+            ) : (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
+                <path d="M4 7h16" />
+                <path d="M4 12h16" />
+                <path d="M4 17h16" />
+              </svg>
+            )}
           </button>
         </div>
       </nav>
@@ -146,13 +158,38 @@ export default function Navbar() {
               </div>
 
               <div className="mt-4 rounded-2xl border border-white/10 bg-black p-4 text-sm leading-6 text-white/45">
-                Explora el portafolio, revisa productos o consulta el estado de
-                un pedido desde el menú principal.
+                Explora el portafolio, solicita una cotización, revisa productos
+                o consulta el estado de un pedido desde el menú principal.
               </div>
             </div>
           </div>
         </div>
       )}
     </header>
+  );
+}
+
+function AccountLink({ isLoggedIn }: { isLoggedIn: boolean }) {
+  return (
+    <Link
+      href={isLoggedIn ? "/mi-cuenta" : "/login"}
+      aria-label={isLoggedIn ? "Abrir mi cuenta" : "Ingresar"}
+      title={isLoggedIn ? "Mi cuenta" : "Ingresar"}
+      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white/75 transition hover:border-white/35 hover:bg-white hover:text-black"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M20 21a8 8 0 0 0-16 0" />
+        <circle cx="12" cy="8" r="4" />
+      </svg>
+    </Link>
   );
 }

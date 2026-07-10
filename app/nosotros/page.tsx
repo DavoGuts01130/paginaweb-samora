@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
@@ -25,10 +26,57 @@ export const metadata: Metadata = {
 };
 
 const values = [
-  "Estética limpia y elegante",
-  "Atención cercana y personalizada",
-  "Cuidado en cada detalle visual",
-  "Entrega responsable y organizada",
+  {
+    title: "Estética limpia",
+    description:
+      "Cuidamos la luz, la composición y el color para que cada imagen tenga presencia y coherencia visual.",
+  },
+  {
+    title: "Atención cercana",
+    description:
+      "Acompañamos cada proyecto con una comunicación clara, humana y personalizada.",
+  },
+  {
+    title: "Detalle en la entrega",
+    description:
+      "Pensamos no solo en tomar la fotografía, sino en cómo se edita, se organiza y se entrega.",
+  },
+  {
+    title: "Memoria con intención",
+    description:
+      "Buscamos que cada imagen conserve una emoción, una historia o un valor especial.",
+  },
+];
+
+const services = [
+  {
+    title: "Sesiones fotográficas",
+    description:
+      "Retratos, parejas, embarazo, mascotas y propuestas visuales pensadas desde la personalidad de cada cliente.",
+  },
+  {
+    title: "Eventos especiales",
+    description:
+      "Bodas, bautizos, quince años, grados, eventos sociales y empresariales con una mirada documental y estética.",
+  },
+  {
+    title: "Producto y marca",
+    description:
+      "Fotografía gastronómica, espacios, productos, contenido para redes y material visual para emprendimientos.",
+  },
+  {
+    title: "Impresión y recuerdos",
+    description:
+      "Fotografías impresas, marcos, entregas físicas y productos pensados para conservar momentos importantes.",
+  },
+];
+
+const process = [
+  "Escuchamos la idea",
+  "Diseñamos la propuesta",
+  "Capturamos la historia",
+  "Editamos con intención",
+  "Entregamos con cuidado",
 ];
 
 export default function NosotrosPage() {
@@ -39,61 +87,257 @@ export default function NosotrosPage() {
       <main className="min-h-screen bg-black pt-24 text-white">
         <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-16">
           {/* HERO */}
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-12">
+          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-14">
             <div className="animate-fade-up">
               <p className="text-xs uppercase tracking-[0.35em] text-white/35 sm:text-sm">
                 Nosotros
               </p>
 
-              <h1 className="mt-4 text-3xl font-bold leading-tight tracking-[-0.04em] sm:text-5xl md:text-6xl lg:text-7xl">
+              <h1 className="mt-4 max-w-3xl text-4xl font-bold leading-[0.98] tracking-[-0.05em] sm:text-5xl md:text-6xl lg:text-7xl">
                 Un estudio fotográfico creado para capturar imágenes con
                 intención.
               </h1>
 
-              <p className="mt-6 text-base leading-7 text-white/55 sm:text-lg sm:leading-8">
+              <p className="mt-6 max-w-2xl text-base leading-7 text-white/55 sm:text-lg sm:leading-8">
                 Samora Studio nace como una propuesta visual enfocada en
                 capturar momentos auténticos y transformarlos en recuerdos
-                duraderos, con una estética sobria, elegante y contemporánea.
+                duraderos. Cada sesión, evento o producto se trabaja con
+                estética, cuidado y una mirada cercana.
               </p>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href="/portafolio"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
+                >
+                  Ver portafolio
+                </Link>
+
+                <Link
+                  href="/contacto"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm font-medium text-white/70 transition hover:border-white/35 hover:text-white"
+                >
+                  Hablemos de tu proyecto
+                </Link>
+              </div>
             </div>
 
-            <div className="premium-card overflow-hidden rounded-[2rem]">
-              <img
-                src="/hero.jpg"
-                alt="Equipo y estilo visual de Samora Studio"
-                className="image-premium h-[280px] w-full object-cover opacity-80 sm:h-[420px] lg:h-[520px]"
+            <div className="relative min-h-[420px] overflow-hidden rounded-[2rem] border border-white/10 bg-neutral-950 lg:min-h-[560px]">
+              <div
+                className="absolute inset-0 bg-cover bg-center opacity-75"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(to top, rgba(0,0,0,0.92), rgba(0,0,0,0.18), rgba(0,0,0,0.65)), url('/nosotros-samora.jpg')",
+                }}
               />
+
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.18),transparent_28%),radial-gradient(circle_at_80%_70%,rgba(255,255,255,0.08),transparent_30%)]" />
+
+              <div className="absolute left-5 top-5 rounded-full border border-white/15 bg-black/45 px-4 py-2 text-[0.65rem] uppercase tracking-[0.28em] text-white/70 backdrop-blur-md">
+                Samora Studio
+              </div>
+
+              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+                <div className="max-w-xl">
+                  <p className="text-xs uppercase tracking-[0.35em] text-white/40">
+                    Detrás de cada imagen
+                  </p>
+
+                  <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+                    Dirección visual, cercanía y memoria.
+                  </h2>
+
+                  <p className="mt-4 text-sm leading-6 text-white/55 sm:text-base sm:leading-7">
+                    Un espacio para crear fotografías que no solo se ven bien,
+                    sino que conservan una historia, una emoción y una intención.
+                  </p>
+                </div>
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
+                    <p className="text-2xl font-semibold">01</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.22em] text-white/45">
+                      Intención
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
+                    <p className="text-2xl font-semibold">02</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.22em] text-white/45">
+                      Captura
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-4 backdrop-blur-md">
+                    <p className="text-2xl font-semibold">03</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.22em] text-white/45">
+                      Entrega
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* VALORES */}
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:mt-16 lg:grid-cols-4 lg:gap-6">
+          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:mt-20 lg:grid-cols-4 lg:gap-5">
             {values.map((value) => (
-              <div
-                key={value}
+              <article
+                key={value.title}
                 className="premium-card premium-card-hover rounded-[1.5rem] p-5 sm:p-6"
               >
-                <p className="text-sm leading-6 text-white/55">{value}</p>
-              </div>
+                <p className="text-xs uppercase tracking-[0.28em] text-white/30">
+                  Valor
+                </p>
+
+                <h3 className="mt-4 text-xl font-semibold tracking-[-0.02em]">
+                  {value.title}
+                </h3>
+
+                <p className="mt-3 text-sm leading-6 text-white/50">
+                  {value.description}
+                </p>
+              </article>
             ))}
           </div>
 
           {/* FILOSOFÍA */}
-          <section className="mt-12 max-w-4xl lg:mt-16">
+          <section className="mt-16 grid gap-8 border-t border-white/10 pt-14 lg:mt-24 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14 lg:pt-20">
+            <div>
+              <p className="text-xs uppercase tracking-[0.35em] text-white/35 sm:text-sm">
+                Filosofía
+              </p>
+
+              <h2 className="mt-4 text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl md:text-5xl">
+                No se trata solo de tomar fotografías, sino de construir
+                recuerdos con valor.
+              </h2>
+            </div>
+
+            <div className="space-y-6 text-base leading-7 text-white/55 sm:text-lg sm:leading-8">
+              <p>
+                Cada proyecto se piensa desde la experiencia del cliente: cómo
+                se vive, cómo se recuerda y cómo permanece en el tiempo. Por eso
+                cuidamos la preparación, la captura, la edición y la entrega
+                final.
+              </p>
+
+              <p>
+                Trabajamos con personas, familias, marcas y eventos que buscan
+                algo más que una imagen bonita: buscan una pieza visual que
+                comunique, emocione y conserve un momento importante.
+              </p>
+            </div>
+          </section>
+
+          {/* LO QUE HACEMOS */}
+          <section className="mt-16 lg:mt-24">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-white/35 sm:text-sm">
+                  Lo que hacemos
+                </p>
+
+                <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl md:text-5xl">
+                  Fotografía para historias, marcas y recuerdos especiales.
+                </h2>
+              </div>
+
+              <Link
+                href="/servicios"
+                className="w-fit rounded-full border border-white/15 px-5 py-3 text-sm text-white/60 transition hover:border-white/35 hover:text-white"
+              >
+                Ver servicios →
+              </Link>
+            </div>
+
+            <div className="mt-8 grid gap-5 md:grid-cols-2">
+              {services.map((service) => (
+                <article
+                  key={service.title}
+                  className="group rounded-[1.75rem] border border-white/10 bg-neutral-950 p-6 transition hover:border-white/25"
+                >
+                  <div className="mb-10 h-px w-full bg-gradient-to-r from-white/30 via-white/10 to-transparent" />
+
+                  <h3 className="text-2xl font-semibold tracking-[-0.03em]">
+                    {service.title}
+                  </h3>
+
+                  <p className="mt-4 text-sm leading-6 text-white/50 sm:text-base sm:leading-7">
+                    {service.description}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          {/* PROCESO */}
+          <section className="mt-16 rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 sm:p-8 lg:mt-24 lg:p-10">
+            <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-white/35 sm:text-sm">
+                  Proceso
+                </p>
+
+                <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+                  Una experiencia visual organizada de inicio a fin.
+                </h2>
+
+                <p className="mt-5 text-sm leading-6 text-white/50 sm:text-base sm:leading-7">
+                  Desde la primera conversación hasta la entrega final, buscamos
+                  que cada cliente entienda el proceso y se sienta acompañado.
+                </p>
+              </div>
+
+              <div className="grid gap-3">
+                {process.map((item, index) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/35 p-4"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-sm font-semibold text-black">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+
+                    <p className="text-sm text-white/65 sm:text-base">
+                      {item}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* CTA */}
+          <section className="premium-card animate-soft-scale mt-16 rounded-[2rem] p-6 text-center sm:p-8 md:p-12 lg:mt-24">
             <p className="text-xs uppercase tracking-[0.35em] text-white/35 sm:text-sm">
-              Filosofía
+              Samora Studio
             </p>
 
-            <h2 className="mt-4 text-2xl font-semibold leading-tight tracking-[-0.03em] sm:text-3xl md:text-4xl lg:text-5xl">
-              No se trata solo de tomar fotografías, sino de construir recuerdos
-              con valor.
+            <h2 className="mx-auto mt-4 max-w-3xl text-3xl font-semibold tracking-[-0.04em] sm:text-4xl md:text-5xl">
+              Cada historia merece una imagen pensada con intención.
             </h2>
 
-            <p className="mt-6 text-base leading-7 text-white/55 sm:text-lg sm:leading-8">
-              Cada sesión, producto o entrega se piensa desde la experiencia del
-              cliente: cómo se siente, cómo se recuerda y cómo permanece en el
-              tiempo.
+            <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-white/50 sm:text-base sm:leading-7">
+              Cuéntanos qué quieres recordar, mostrar o construir visualmente.
+              Podemos ayudarte a convertirlo en una experiencia fotográfica.
             </p>
+
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/contacto"
+                className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-7 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
+              >
+                Contactar a Samora
+              </Link>
+
+              <Link
+                href="/portafolio"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-7 py-3 text-sm font-medium text-white/70 transition hover:border-white/35 hover:text-white"
+              >
+                Explorar trabajos
+              </Link>
+            </div>
           </section>
         </section>
       </main>

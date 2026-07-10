@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -71,6 +72,10 @@ type Props = {
   categoriesCount: number;
   ordersCount: number;
   pendingOrders: number;
+  quotesCount: number;
+  newQuotes: number;
+  reviewingQuotes: number;
+  travelReviewQuotes: number;
   totalRevenue: number;
   todayRevenue: number;
   monthRevenue: number;
@@ -121,6 +126,12 @@ const quickLinks = [
     href: "/admin/pedidos",
     label: "Ventas",
   },
+  {
+    title: "Cotizaciones",
+    description: "Revisa solicitudes, ajusta valores y responde clientes.",
+    href: "/admin/cotizaciones",
+    label: "Comercial",
+  },
 ];
 
 function formatDate(value: string) {
@@ -153,6 +164,10 @@ export default function AdminDashboardView({
   categoriesCount,
   ordersCount,
   pendingOrders,
+  quotesCount,
+  newQuotes,
+  reviewingQuotes,
+  travelReviewQuotes,
   totalRevenue,
   todayRevenue,
   monthRevenue,
@@ -200,8 +215,8 @@ export default function AdminDashboardView({
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-7 text-white/50 md:text-lg md:leading-8">
-              Gestiona ventas, pedidos, contenido, productos y rendimiento desde
-              un solo lugar.
+              Gestiona ventas, pedidos, contenido, productos y solicitudes
+              comerciales desde un solo lugar.
             </p>
           </div>
 
@@ -278,6 +293,48 @@ export default function AdminDashboardView({
             delay={0.46}
           />
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          transition={{ delay: 0.5, duration: 0.45 }}
+          className="premium-card mt-6 overflow-hidden rounded-[1.5rem] p-5 sm:p-6"
+        >
+          <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-white/30">
+                Cotizaciones
+              </p>
+
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
+                Solicitudes comerciales
+              </h2>
+
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/40">
+                Revisa las solicitudes generadas desde el cotizador, ajusta
+                valores finales y responde al cliente desde WhatsApp.
+              </p>
+            </div>
+
+            <Link
+              href="/admin/cotizaciones"
+              className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
+            >
+              Ver cotizaciones
+            </Link>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <QuoteMiniStat label="Total" value={quotesCount} />
+            <QuoteMiniStat label="Nuevas" value={newQuotes} highlight />
+            <QuoteMiniStat label="En revisión" value={reviewingQuotes} />
+            <QuoteMiniStat
+              label="Desplazamiento"
+              value={travelReviewQuotes}
+              warning
+            />
+          </div>
+        </motion.div>
 
         <div className="mt-10 grid min-w-0 gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <Panel
@@ -651,9 +708,7 @@ export default function AdminDashboardView({
                     </div>
 
                     <span className="shrink-0 text-white/35">
-                      {new Date(project.created_at).toLocaleDateString(
-                        "es-CO"
-                      )}
+                      {new Date(project.created_at).toLocaleDateString("es-CO")}
                     </span>
                   </motion.div>
                 ))
@@ -706,7 +761,7 @@ export default function AdminDashboardView({
             description="Entra directamente a las áreas principales del sistema."
             delay={1.4}
           >
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {quickLinks.map((item) => (
                 <QuickAccessCard key={item.title} {...item} />
               ))}
@@ -715,6 +770,42 @@ export default function AdminDashboardView({
         </div>
       </section>
     </main>
+  );
+}
+
+function QuoteMiniStat({
+  label,
+  value,
+  highlight = false,
+  warning = false,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+  warning?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-4 ${
+        highlight
+          ? "border-white/20 bg-white/[0.06]"
+          : warning
+          ? "border-yellow-400/20 bg-yellow-400/[0.06]"
+          : "border-white/10 bg-black"
+      }`}
+    >
+      <p className="text-xs uppercase tracking-[0.22em] text-white/35">
+        {label}
+      </p>
+
+      <p
+        className={`mt-2 text-2xl font-semibold tracking-[-0.04em] ${
+          warning ? "text-yellow-300" : "text-white"
+        }`}
+      >
+        {value}
+      </p>
+    </div>
   );
 }
 
@@ -818,7 +909,7 @@ function Panel({
   eyebrow: string;
   title: string;
   description?: string;
-  children: React.ReactNode;
+  children: ReactNode;
   delay: number;
 }) {
   return (

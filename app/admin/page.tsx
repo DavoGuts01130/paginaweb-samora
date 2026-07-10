@@ -30,7 +30,10 @@ function getDateKey(date: Date) {
 }
 
 function getMonthKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}`;
 }
 
 function getStartDate(range: string) {
@@ -86,6 +89,7 @@ export default async function AdminDashboard({ searchParams }: Props) {
     .order("created_at", { ascending: false });
 
   const ordersCount = allOrders?.length ?? 0;
+
   const pendingOrders =
     allOrders?.filter((order) => order.status === "pendiente").length ?? 0;
 
@@ -98,11 +102,31 @@ export default async function AdminDashboard({ searchParams }: Props) {
   const cancelledOrders =
     allOrders?.filter((order) => order.status === "cancelado").length ?? 0;
 
+  const { data: allQuotes } = await supabase
+    .from("quote_requests")
+    .select("id, status, requires_travel_review, created_at")
+    .order("created_at", { ascending: false });
+
+  const quotesCount = allQuotes?.length ?? 0;
+
+  const newQuotes =
+    allQuotes?.filter(
+      (quote) =>
+        quote.status === "new" || quote.status === "new_travel_review"
+    ).length ?? 0;
+
+  const reviewingQuotes =
+    allQuotes?.filter((quote) => quote.status === "reviewing").length ?? 0;
+
+  const travelReviewQuotes =
+    allQuotes?.filter((quote) => quote.requires_travel_review).length ?? 0;
+
   const startDate = getStartDate(selectedRange);
 
   const { data: deliveredOrdersData } = await supabase
     .from("orders")
-    .select(`
+    .select(
+      `
       id,
       order_code,
       customer_name,
@@ -114,7 +138,8 @@ export default async function AdminDashboard({ searchParams }: Props) {
         price,
         quantity
       )
-    `)
+    `
+    )
     .eq("status", "entregado")
     .gte("created_at", startDate.toISOString())
     .order("created_at", { ascending: true });
@@ -131,15 +156,16 @@ export default async function AdminDashboard({ searchParams }: Props) {
     0
   );
 
-  const averageTicket =
-    orders.length === 0 ? 0 : totalRevenue / orders.length;
+  const averageTicket = orders.length === 0 ? 0 : totalRevenue / orders.length;
 
   const todayRevenue = orders
     .filter((order) => getDateKey(new Date(order.created_at)) === todayKey)
     .reduce((acc, order) => acc + Number(order.total ?? 0), 0);
 
   const monthRevenue = orders
-    .filter((order) => getMonthKey(new Date(order.created_at)) === currentMonthKey)
+    .filter(
+      (order) => getMonthKey(new Date(order.created_at)) === currentMonthKey
+    )
     .reduce((acc, order) => acc + Number(order.total ?? 0), 0);
 
   const yearRevenue = orders
@@ -157,7 +183,9 @@ export default async function AdminDashboard({ searchParams }: Props) {
 
   const previousMonthRevenue =
     previousMonthOrders
-      ?.filter((order) => getMonthKey(new Date(order.created_at)) === previousMonthKey)
+      ?.filter(
+        (order) => getMonthKey(new Date(order.created_at)) === previousMonthKey
+      )
       .reduce((acc, order) => acc + Number(order.total ?? 0), 0) ?? 0;
 
   const monthGrowth =
@@ -169,7 +197,10 @@ export default async function AdminDashboard({ searchParams }: Props) {
   yesterday.setDate(yesterday.getDate() - 1);
 
   const yesterdayRevenue = orders
-    .filter((order) => getDateKey(new Date(order.created_at)) === getDateKey(yesterday))
+    .filter(
+      (order) =>
+        getDateKey(new Date(order.created_at)) === getDateKey(yesterday)
+    )
     .reduce((acc, order) => acc + Number(order.total ?? 0), 0);
 
   const todayGrowth =
@@ -184,16 +215,21 @@ export default async function AdminDashboard({ searchParams }: Props) {
     salesByDayMap.set(key, (salesByDayMap.get(key) ?? 0) + Number(order.total ?? 0));
   });
 
-  const salesByDay = Array.from(salesByDayMap.entries()).map(([date, total]) => ({
-    date,
-    total,
-  }));
+  const salesByDay = Array.from(salesByDayMap.entries()).map(
+    ([date, total]) => ({
+      date,
+      total,
+    })
+  );
 
   const salesByMonthMap = new Map<string, number>();
 
   orders.forEach((order) => {
     const key = getMonthKey(new Date(order.created_at));
-    salesByMonthMap.set(key, (salesByMonthMap.get(key) ?? 0) + Number(order.total ?? 0));
+    salesByMonthMap.set(
+      key,
+      (salesByMonthMap.get(key) ?? 0) + Number(order.total ?? 0)
+    );
   });
 
   const salesByMonth = Array.from(salesByMonthMap.entries()).map(
@@ -255,11 +291,13 @@ export default async function AdminDashboard({ searchParams }: Props) {
 
   const { data: projectsByCategory } = await supabase
     .from("portfolio_categories")
-    .select(`
+    .select(
+      `
       id,
       name,
       portfolio_projects (id)
-    `);
+    `
+    );
 
   const formattedCategories =
     projectsByCategory?.map((category) => ({
@@ -311,6 +349,10 @@ export default async function AdminDashboard({ searchParams }: Props) {
         categoriesCount={categoriesCount ?? 0}
         ordersCount={ordersCount}
         pendingOrders={pendingOrders}
+        quotesCount={quotesCount}
+        newQuotes={newQuotes}
+        reviewingQuotes={reviewingQuotes}
+        travelReviewQuotes={travelReviewQuotes}
         totalRevenue={totalRevenue}
         todayRevenue={todayRevenue}
         monthRevenue={monthRevenue}

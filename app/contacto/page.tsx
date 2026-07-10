@@ -33,6 +33,13 @@ const whatsappMessage = encodeURIComponent(
 
 const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
+const quickActions = [
+  "Cotizar una sesión",
+  "Consultar disponibilidad",
+  "Preguntar por productos impresos",
+  "Seguimiento de entrega",
+];
+
 export default function ContactoPage() {
   return (
     <>
@@ -40,21 +47,21 @@ export default function ContactoPage() {
 
       <main className="min-h-screen bg-black pt-24 text-white">
         <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-16">
-          <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:gap-12">
+          <div className="grid gap-10 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:gap-14">
             {/* CONTENIDO PRINCIPAL */}
             <div className="animate-fade-up">
               <p className="text-xs uppercase tracking-[0.35em] text-white/35 sm:text-sm">
                 Contacto
               </p>
 
-              <h1 className="mt-4 text-3xl font-bold leading-tight tracking-[-0.04em] sm:text-5xl md:text-6xl lg:text-7xl">
-                Cotiza tu próxima sesión fotográfica con Samora Studio.
+              <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-[0.98] tracking-[-0.05em] sm:text-5xl md:text-6xl lg:text-7xl">
+                Hablemos de tu próxima historia, evento o producto.
               </h1>
 
               <p className="mt-6 max-w-2xl text-base leading-7 text-white/55 sm:text-lg sm:leading-8">
-                Escríbenos para consultar disponibilidad, solicitar información
-                sobre servicios fotográficos, cotizar productos impresos o
-                resolver dudas sobre entregas.
+                Escríbenos para consultar disponibilidad, cotizar una sesión,
+                planear la cobertura de un evento o resolver dudas sobre
+                productos impresos, entregas y pedidos.
               </p>
 
               <div className="mt-8 grid gap-3 sm:grid-cols-2 sm:gap-4">
@@ -62,25 +69,48 @@ export default function ContactoPage() {
                   href={whatsappLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="premium-button inline-flex items-center justify-center rounded-full bg-white px-8 py-3 text-center text-sm font-medium text-black transition hover:scale-[1.02]"
+                  className="premium-button inline-flex min-h-12 items-center justify-center rounded-full bg-white px-8 py-3 text-center text-sm font-medium text-black transition hover:scale-[1.02]"
                 >
                   Escribir por WhatsApp
                 </a>
 
                 <Link
                   href="/tienda"
-                  className="inline-flex items-center justify-center rounded-full border border-white/20 px-8 py-3 text-center text-sm text-white/75 transition hover:bg-white hover:text-black"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/20 px-8 py-3 text-center text-sm text-white/75 transition hover:bg-white hover:text-black"
                 >
-                  Ver productos
+                  Ver productos y servicios
                 </Link>
+              </div>
+
+              <div className="mt-10 grid gap-3 sm:grid-cols-2">
+                {quickActions.map((action) => (
+                  <div
+                    key={action}
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4"
+                  >
+                    <p className="text-sm text-white/55">{action}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* TARJETA DE CONTACTO */}
             <aside className="premium-card rounded-[2rem] p-6 sm:p-7 md:p-8">
-              <h2 className="text-2xl font-semibold sm:text-3xl">
-                Información de contacto
-              </h2>
+              <div className="flex items-start justify-between gap-6">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-white/30">
+                    Samora Studio
+                  </p>
+
+                  <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
+                    Información de contacto
+                  </h2>
+                </div>
+
+                <div className="hidden rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/45 sm:block">
+                  Colombia
+                </div>
+              </div>
 
               <div className="mt-8 space-y-6 text-sm sm:text-base">
                 <Info label="WhatsApp" value="+57 319 270 9536" />
@@ -95,10 +125,29 @@ export default function ContactoPage() {
                 />
               </div>
 
-              <div className="mt-8 rounded-2xl border border-white/10 bg-black p-4 sm:p-5">
+              <div className="mt-8 grid gap-3">
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
+                >
+                  Iniciar conversación
+                </a>
+
+                <Link
+                  href="/seguimiento"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm font-medium text-white/70 transition hover:border-white/35 hover:text-white"
+                >
+                  Consultar seguimiento
+                </Link>
+              </div>
+
+              <div className="mt-8 border-t border-white/10 pt-6">
                 <p className="text-sm leading-6 text-white/45">
-                  Esta información puede ajustarse fácilmente cuando Samora
-                  defina el número, correo oficial, ciudad y horarios finales.
+                  Para una atención más rápida, cuéntanos qué tipo de servicio
+                  necesitas, la fecha aproximada, el lugar y si buscas entrega
+                  digital, impresa o ambas.
                 </p>
               </div>
             </aside>
