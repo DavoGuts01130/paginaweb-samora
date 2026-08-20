@@ -2,42 +2,56 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
+const whatsappNumber =
+  process.env.NEXT_PUBLIC_SAMORA_WHATSAPP_NUMBER ?? "573138429568";
+
+const whatsappText =
+  "Hola, quiero comunicarme con Samora Estudio para consultar información sobre sus servicios.";
+
+const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+  whatsappText
+)}`;
+
 export const metadata: Metadata = {
-  title: "Contacto",
+  title: "Contacto | Samora Estudio",
   description:
-    "Contacta a Samora Studio para cotizar sesiones fotográficas, fotografía de eventos, retratos profesionales, productos impresos y entregas.",
+    "Contacta a Samora Estudio para cotizar sesiones, eventos, fotografía de producto, impresiones, entregas y pedidos.",
   alternates: {
     canonical: "/contacto",
   },
   openGraph: {
-    title: "Contacto | Samora Studio",
+    title: "Contacto | Samora Estudio",
     description:
-      "Escríbenos para cotizar una sesión fotográfica, consultar disponibilidad o resolver dudas sobre productos y entregas.",
+      "Escríbenos para consultar disponibilidad, solicitar una cotización personalizada o resolver dudas sobre productos y entregas.",
     url: "/contacto",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Contacto Samora Studio",
+        alt: "Contacto Samora Estudio",
       },
     ],
   },
 };
 
-const whatsappNumber = "573138429568";
-
-const whatsappMessage = encodeURIComponent(
-  "Hola, quiero recibir información sobre los servicios de Samora Studio."
-);
-
-const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
-
 const quickActions = [
-  "Cotizar una sesión",
-  "Consultar disponibilidad",
-  "Preguntar por productos impresos",
-  "Seguimiento de entrega",
+  {
+    label: "Cotizar una sesión",
+    href: "/servicios#cotizador",
+  },
+  {
+    label: "Consultar disponibilidad",
+    href: whatsappLink,
+  },
+  {
+    label: "Preguntar por productos impresos",
+    href: "/tienda",
+  },
+  {
+    label: "Seguimiento de entrega",
+    href: "/seguimiento",
+  },
 ];
 
 export default function ContactoPage() {
@@ -46,123 +60,133 @@ export default function ContactoPage() {
       <Navbar />
 
       <main className="min-h-screen bg-black pt-24 text-white">
-        <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-16">
-          <div className="grid gap-10 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:gap-14">
-            {/* CONTENIDO PRINCIPAL */}
-            <div className="animate-fade-up">
-              <p className="text-xs uppercase tracking-[0.35em] text-white/35 sm:text-sm">
-                Contacto
-              </p>
+        <section className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:py-20 lg:grid-cols-[1fr_0.85fr] lg:items-center">
+          <div className="animate-fade-up">
+            <p className="text-sm uppercase tracking-[0.35em] text-white/35">
+              Contacto
+            </p>
 
-              <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-[0.98] tracking-[-0.05em] sm:text-5xl md:text-6xl lg:text-7xl">
-                Hablemos de tu próxima historia, evento o producto.
-              </h1>
+            <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-[1.05] tracking-[-0.05em] sm:text-5xl md:text-7xl">
+              Hablemos de tu próxima historia, evento o producto.
+            </h1>
 
-              <p className="mt-6 max-w-2xl text-base leading-7 text-white/55 sm:text-lg sm:leading-8">
-                Escríbenos para consultar disponibilidad, cotizar una sesión,
-                planear la cobertura de un evento o resolver dudas sobre
-                productos impresos, entregas y pedidos.
-              </p>
+            <p className="mt-6 max-w-2xl text-base leading-7 text-white/55 md:text-lg md:leading-8">
+              Escríbenos para consultar disponibilidad, solicitar una
+              cotización personalizada, planear la cobertura de un evento o
+              resolver dudas sobre productos impresos, entregas y pedidos.
+            </p>
 
-              <div className="mt-8 grid gap-3 sm:grid-cols-2 sm:gap-4">
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="premium-button inline-flex min-h-12 items-center justify-center rounded-full bg-white px-8 py-3 text-center text-sm font-medium text-black transition hover:scale-[1.02]"
-                >
-                  Escribir por WhatsApp
-                </a>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              <Link
+                href="/servicios#cotizador"
+                className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-7 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
+              >
+                Realizar cotización
+              </Link>
 
-                <Link
-                  href="/tienda"
-                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/20 px-8 py-3 text-center text-sm text-white/75 transition hover:bg-white hover:text-black"
-                >
-                  Ver productos y servicios
-                </Link>
-              </div>
-
-              <div className="mt-10 grid gap-3 sm:grid-cols-2">
-                {quickActions.map((action) => (
-                  <div
-                    key={action}
-                    className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4"
-                  >
-                    <p className="text-sm text-white/55">{action}</p>
-                  </div>
-                ))}
-              </div>
+              <Link
+                href="/servicios"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-7 py-3 text-sm font-medium text-white/70 transition hover:border-white/35 hover:bg-white hover:text-black"
+              >
+                Ver productos y servicios
+              </Link>
             </div>
 
-            {/* TARJETA DE CONTACTO */}
-            <aside className="premium-card rounded-[2rem] p-6 sm:p-7 md:p-8">
-              <div className="flex items-start justify-between gap-6">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-white/30">
-                    Samora Studio
-                  </p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              {quickActions.map((action) => {
+                const isExternal = action.href.startsWith("http");
 
-                  <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
-                    Información de contacto
-                  </h2>
-                </div>
+                if (isExternal) {
+                  return (
+                    <a
+                      key={action.label}
+                      href={action.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/55 transition hover:border-white/25 hover:text-white"
+                    >
+                      {action.label}
+                    </a>
+                  );
+                }
 
-                <div className="hidden rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/45 sm:block">
-                  Colombia
-                </div>
-              </div>
-
-              <div className="mt-8 space-y-6 text-sm sm:text-base">
-                <Info label="WhatsApp" value="+57 319 270 9536" />
-                <Info
-                  label="Correo"
-                  value="samoraestudiocreativo@gmail.com"
-                />
-                <Info label="Ubicación" value="Colombia" />
-                <Info
-                  label="Horario"
-                  value="Lunes a sábado · 9:00 a.m. - 6:00 p.m."
-                />
-              </div>
-
-              <div className="mt-8 grid gap-3">
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
-                >
-                  Iniciar conversación
-                </a>
-
-                <Link
-                  href="/seguimiento"
-                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm font-medium text-white/70 transition hover:border-white/35 hover:text-white"
-                >
-                  Consultar seguimiento
-                </Link>
-              </div>
-
-              <div className="mt-8 border-t border-white/10 pt-6">
-                <p className="text-sm leading-6 text-white/45">
-                  Para una atención más rápida, cuéntanos qué tipo de servicio
-                  necesitas, la fecha aproximada, el lugar y si buscas entrega
-                  digital, impresa o ambas.
-                </p>
-              </div>
-            </aside>
+                return (
+                  <Link
+                    key={action.label}
+                    href={action.href}
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/55 transition hover:border-white/25 hover:text-white"
+                  >
+                    {action.label}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
+
+          <aside className="premium-card rounded-[2rem] p-6 sm:p-8">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-xs uppercase tracking-[0.35em] text-white/35">
+                Samora Estudio
+              </p>
+
+              <span className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs uppercase tracking-[0.25em] text-white/45">
+                Colombia
+              </span>
+            </div>
+
+            <h2 className="mt-5 text-3xl font-semibold tracking-[-0.04em]">
+              Información de contacto
+            </h2>
+
+            <div className="mt-8 space-y-6">
+              <InfoBlock label="WhatsApp" value="+57 313 842 9568" />
+              <InfoBlock
+                label="Correo"
+                value="samoraestudiocreativo@gmail.com"
+              />
+              <InfoBlock label="Ubicación" value="Guatavita, Cundinamarca" />
+              <InfoBlock
+                label="Horario"
+                value="Lunes a sábado · 9:00 a.m. - 6:00 p.m."
+              />
+            </div>
+
+            <a
+              href={whatsappLink}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-white px-7 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
+            >
+              Iniciar conversación
+            </a>
+
+            <Link
+              href="/seguimiento"
+              className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/15 px-7 py-3 text-sm font-medium text-white/65 transition hover:border-white/35 hover:text-white"
+            >
+              Consultar seguimiento
+            </Link>
+
+            <div className="mt-8 border-t border-white/10 pt-6">
+              <p className="text-sm leading-7 text-white/45">
+                Para una atención más rápida, cuéntanos qué tipo de servicio
+                necesitas, fecha aproximada, lugar, entregables y si prefieres
+                coordinar una reunión virtual, presencial o continuar por
+                WhatsApp.
+              </p>
+            </div>
+          </aside>
         </section>
       </main>
     </>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-sm text-white/35">{label}</p>
-      <p className="mt-1 break-words font-medium text-white">{value}</p>
+      <p className="text-sm font-medium text-white/35">{label}</p>
+      <p className="mt-2 text-base font-semibold text-white">{value}</p>
     </div>
   );
 }

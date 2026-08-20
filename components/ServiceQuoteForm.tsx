@@ -24,7 +24,6 @@ type ServiceKey =
   | "impresiones"
   | "web_software"
   | "otro"
-  // Valores antiguos para compatibilidad con cotizaciones existentes.
   | "sesion_individual"
   | "evento_social"
   | "grados"
@@ -37,7 +36,6 @@ type ServiceZoneKey =
   | "cundinamarca_lejano"
   | "fuera_cundinamarca"
   | "especial_fuera_cobertura"
-  // Valores antiguos para compatibilidad con cotizaciones existentes.
   | "municipio_cercano"
   | "bogota_sabana";
 
@@ -216,7 +214,6 @@ const quoteRules: Record<ServiceKey, QuoteRule> = {
     max: 1800000,
   },
 
-  // Compatibilidad con registros anteriores.
   sesion_individual: {
     label: "Sesión individual / retrato",
     description:
@@ -300,7 +297,6 @@ const serviceZones: Record<ServiceZoneKey, ServiceZoneRule> = {
     requiresTravelReview: true,
   },
 
-  // Compatibilidad con registros anteriores.
   municipio_cercano: {
     label: "Municipio cercano",
     description:
@@ -1039,6 +1035,18 @@ export default function ServiceQuoteForm() {
         .input-quote option {
           color: black;
           background: white;
+        }
+
+        .input-quote[type="date"]::-webkit-calendar-picker-indicator,
+        .input-quote[type="time"]::-webkit-calendar-picker-indicator {
+          filter: invert(1);
+          opacity: 0.65;
+          cursor: pointer;
+        }
+
+        .input-quote[type="date"]::-webkit-calendar-picker-indicator:hover,
+        .input-quote[type="time"]::-webkit-calendar-picker-indicator:hover {
+          opacity: 1;
         }
       `}</style>
     </section>

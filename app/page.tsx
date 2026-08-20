@@ -5,12 +5,12 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Fotografía profesional para momentos memorables",
   description:
-    "Samora Studio captura retratos, eventos, productos y recuerdos impresos con una estética elegante, auténtica y atemporal.",
+    "Samora Estudio captura retratos, eventos, productos y recuerdos impresos con una estética elegante, auténtica y atemporal.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Samora Studio | Fotografía profesional",
+    title: "Samora Estudio | Fotografía profesional",
     description:
       "Fotografía profesional para retratos, eventos, productos y recuerdos impresos.",
     url: "/",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Samora Studio",
+        alt: "Samora Estudio",
       },
     ],
   },
@@ -50,14 +50,14 @@ export default function Home() {
             ) : (
               <img
                 src={HERO_IMAGE}
-                alt="Fotografía profesional Samora Studio"
+                alt="Fotografía profesional Samora Estudio"
                 className="h-full w-full scale-105 object-cover opacity-90"
               />
             )}
 
-              <div className="absolute inset-0 bg-black/20" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-black/20" />
+            <div className="absolute inset-0 bg-black/20" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-black/20" />
           </div>
 
           {/* Glow */}
@@ -69,12 +69,12 @@ export default function Home() {
             {LOGO_IMAGE ? (
               <img
                 src={LOGO_IMAGE}
-                alt="Samora Studio"
+                alt="Samora Estudio"
                 className="mb-6 h-12 w-auto object-contain sm:h-14"
               />
             ) : (
               <p className="mb-5 text-xs uppercase tracking-[0.38em] text-white/55 sm:text-sm sm:tracking-[0.45em]">
-                Samora Studio
+                Samora Estudio
               </p>
             )}
 
@@ -96,6 +96,13 @@ export default function Home() {
                 className="premium-button flex min-h-12 items-center justify-center rounded-full bg-white px-8 py-3 text-sm font-medium text-black transition hover:scale-105 hover:bg-white/90"
               >
                 Ver portafolio
+              </Link>
+
+              <Link
+                href="/servicios#cotizador"
+                className="flex min-h-12 items-center justify-center rounded-full border border-white/30 bg-white/[0.03] px-8 py-3 text-sm font-medium text-white transition hover:bg-white hover:text-black"
+              >
+                Realizar cotización
               </Link>
 
               <Link
