@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
 };
 
-const whatsappNumber = "573192709536";
+const whatsappNumber = "573138429568";
 
 const whatsappMessage = encodeURIComponent(
   "Hola, quiero recibir información sobre los servicios de Samora Studio."

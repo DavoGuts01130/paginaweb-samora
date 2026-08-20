@@ -5,7 +5,7 @@ import type { FormEvent, ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 const whatsappNumber =
-  process.env.NEXT_PUBLIC_SAMORA_WHATSAPP_NUMBER ?? "573192709536";
+  process.env.NEXT_PUBLIC_SAMORA_WHATSAPP_NUMBER ?? "573138429568";
 
 type ServiceKey =
   | "sesion_individual"
