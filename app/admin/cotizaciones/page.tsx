@@ -39,6 +39,8 @@ export default async function AdminCotizacionesPage() {
       quote_code,
       customer_name,
       customer_phone,
+      customer_email,
+      customer_document,
       service_type,
       service_label,
       event_date,
@@ -49,6 +51,7 @@ export default async function AdminCotizacionesPage() {
       duration_unit,
       duration_hours,
       quantity,
+      guest_count,
       digital_delivery,
       printed_delivery,
       special_deliverable,
@@ -74,6 +77,20 @@ export default async function AdminCotizacionesPage() {
       confirmed_timezone,
       confirmed_location,
       schedule_notes,
+      meeting_requested,
+      meeting_type,
+      meeting_status,
+      meeting_date,
+      meeting_start_time,
+      meeting_end_time,
+      meeting_location,
+      meeting_notes,
+      meeting_completed_at,
+      internal_pricing_notes,
+      selected_package,
+      final_price_cop,
+      final_quote_sent_at,
+      final_pdf_url,
       source,
       created_at,
       updated_at
@@ -99,8 +116,8 @@ export default async function AdminCotizacionesPage() {
               </h1>
 
               <p className="mt-4 max-w-2xl text-sm leading-7 text-white/50 sm:text-base">
-                Revisa solicitudes, ajusta valores, responde clientes y deja
-                preparada la fecha exacta para la agenda.
+                Revisa solicitudes, coordina reuniones, ajusta valores finales,
+                prepara PDFs y deja lista la agenda cuando el cliente apruebe.
               </p>
             </div>
 
@@ -115,8 +132,9 @@ export default async function AdminCotizacionesPage() {
           {error ? (
             <div className="rounded-[2rem] border border-red-400/20 bg-red-400/10 p-6 text-sm leading-6 text-red-100/80">
               No se pudieron cargar las cotizaciones. Revisa que la tabla{" "}
-              <span className="font-semibold">quote_requests</span> exista en
-              Supabase y que las políticas RLS estén configuradas.
+              <span className="font-semibold">quote_requests</span> tenga las
+              columnas nuevas para reunión, correo, documento, invitados y valor
+              final.
               <br />
               <span className="mt-2 block text-red-100/60">
                 Error: {error.message}

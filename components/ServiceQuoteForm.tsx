@@ -8,21 +8,40 @@ const whatsappNumber =
   process.env.NEXT_PUBLIC_SAMORA_WHATSAPP_NUMBER ?? "573138429568";
 
 type ServiceKey =
-  | "sesion_individual"
+  | "matrimonio_boda"
+  | "quince_anos"
+  | "bautizo"
+  | "cumpleanos"
+  | "grados_escolares"
+  | "evento_empresarial"
+  | "retrato_individual"
   | "pareja_embarazo"
+  | "familiar"
   | "mascotas"
+  | "producto"
+  | "gastronomia"
+  | "hospedaje_espacios"
+  | "impresiones"
+  | "web_software"
+  | "otro"
+  // Valores antiguos para compatibilidad con cotizaciones existentes.
+  | "sesion_individual"
   | "evento_social"
   | "grados"
-  | "producto_marca"
-  | "impresiones"
-  | "web_software";
+  | "producto_marca";
 
 type ServiceZoneKey =
   | "guatavita"
-  | "municipio_cercano"
-  | "bogota_sabana"
+  | "sabana_norte"
+  | "bogota"
   | "cundinamarca_lejano"
-  | "fuera_cundinamarca";
+  | "fuera_cundinamarca"
+  | "especial_fuera_cobertura"
+  // Valores antiguos para compatibilidad con cotizaciones existentes.
+  | "municipio_cercano"
+  | "bogota_sabana";
+
+type MeetingType = "por_definir" | "virtual" | "presencial" | "whatsapp";
 
 type QuoteRule = {
   label: string;
@@ -34,6 +53,7 @@ type QuoteRule = {
   perUnitMin?: number;
   perUnitMax?: number;
   unitLabel?: string;
+  asksGuestCount?: boolean;
 };
 
 type ServiceZoneRule = {
@@ -44,8 +64,69 @@ type ServiceZoneRule = {
 };
 
 const quoteRules: Record<ServiceKey, QuoteRule> = {
-  sesion_individual: {
-    label: "Sesión individual / retrato",
+  matrimonio_boda: {
+    label: "Matrimonio / boda",
+    description:
+      "Cobertura de ceremonia, recepción, sesión de pareja, video, álbum, photobook o recuerdos físicos según el paquete acordado.",
+    min: 1250000,
+    max: 1800000,
+    perHourMin: 90000,
+    perHourMax: 160000,
+    asksGuestCount: true,
+  },
+  quince_anos: {
+    label: "Quince años",
+    description:
+      "Cobertura de celebración, sesión previa, recepción, familiares, invitados, detalles y entregables digitales o impresos.",
+    min: 650000,
+    max: 1800000,
+    perHourMin: 90000,
+    perHourMax: 160000,
+    asksGuestCount: true,
+  },
+  bautizo: {
+    label: "Bautizo",
+    description:
+      "Registro de ceremonia, familia, invitados, detalles y momentos importantes de la celebración.",
+    min: 450000,
+    max: 1200000,
+    perHourMin: 80000,
+    perHourMax: 140000,
+    asksGuestCount: true,
+  },
+  cumpleanos: {
+    label: "Cumpleaños",
+    description:
+      "Cobertura de celebración familiar o social, invitados, detalles, decoración y momentos principales.",
+    min: 380000,
+    max: 1200000,
+    perHourMin: 70000,
+    perHourMax: 130000,
+    asksGuestCount: true,
+  },
+  grados_escolares: {
+    label: "Grados / eventos escolares",
+    description:
+      "Paquetes escolares con fotos individuales, grupales, cartilla o entregables impresos.",
+    min: 700000,
+    max: 1600000,
+    perUnitMin: 22000,
+    perUnitMax: 45000,
+    unitLabel: "estudiante",
+    asksGuestCount: true,
+  },
+  evento_empresarial: {
+    label: "Evento empresarial",
+    description:
+      "Cobertura para reuniones, lanzamientos, conferencias, actividades corporativas y contenido visual para marcas.",
+    min: 650000,
+    max: 1800000,
+    perHourMin: 90000,
+    perHourMax: 160000,
+    asksGuestCount: true,
+  },
+  retrato_individual: {
+    label: "Retrato individual / profesional",
     description:
       "Retratos personales, profesionales, artísticos o marca personal.",
     min: 180000,
@@ -62,6 +143,15 @@ const quoteRules: Record<ServiceKey, QuoteRule> = {
     perHourMin: 50000,
     perHourMax: 90000,
   },
+  familiar: {
+    label: "Sesión familiar",
+    description:
+      "Sesiones familiares, recuerdos especiales, grupos pequeños o momentos compartidos.",
+    min: 220000,
+    max: 520000,
+    perHourMin: 50000,
+    perHourMax: 90000,
+  },
   mascotas: {
     label: "Mascotas",
     description:
@@ -71,34 +161,35 @@ const quoteRules: Record<ServiceKey, QuoteRule> = {
     perHourMin: 40000,
     perHourMax: 70000,
   },
-  evento_social: {
-    label: "Evento social / empresarial",
+  producto: {
+    label: "Fotografía de producto",
     description:
-      "Bodas, bautizos, quince años, eventos empresariales o celebraciones.",
-    min: 650000,
-    max: 1800000,
-    perHourMin: 90000,
-    perHourMax: 160000,
-  },
-  grados: {
-    label: "Grados / colegio",
-    description:
-      "Paquetes escolares con fotos individuales, grupales, cartilla o entregables impresos.",
-    min: 700000,
-    max: 1600000,
-    perUnitMin: 22000,
-    perUnitMax: 45000,
-    unitLabel: "estudiante",
-  },
-  producto_marca: {
-    label: "Fotografía de producto / gastronomía",
-    description:
-      "Fotos para restaurantes, productos, espacios, hospedajes, marcas o redes.",
+      "Fotos para productos, catálogos, tiendas, emprendimientos, redes sociales o material comercial.",
     min: 250000,
     max: 750000,
     perUnitMin: 25000,
     perUnitMax: 60000,
     unitLabel: "producto/foto",
+  },
+  gastronomia: {
+    label: "Fotografía gastronómica / coctelería",
+    description:
+      "Fotografía para restaurantes, platos, bebidas, coctelería, menús, redes sociales y campañas de marca.",
+    min: 250000,
+    max: 850000,
+    perUnitMin: 25000,
+    perUnitMax: 60000,
+    unitLabel: "producto/foto",
+  },
+  hospedaje_espacios: {
+    label: "Hospedajes / espacios / inmobiliaria",
+    description:
+      "Fotografía para hospedajes, casas, espacios comerciales, experiencias, locaciones o inmuebles.",
+    min: 280000,
+    max: 950000,
+    perUnitMin: 25000,
+    perUnitMax: 70000,
+    unitLabel: "espacio/foto",
   },
   impresiones: {
     label: "Impresiones / marcos / recuerdos",
@@ -117,6 +208,55 @@ const quoteRules: Record<ServiceKey, QuoteRule> = {
     min: 800000,
     max: 4500000,
   },
+  otro: {
+    label: "Otro servicio personalizado",
+    description:
+      "Solicitud especial que requiere revisión personalizada por el equipo de Samora Estudio.",
+    min: 250000,
+    max: 1800000,
+  },
+
+  // Compatibilidad con registros anteriores.
+  sesion_individual: {
+    label: "Sesión individual / retrato",
+    description:
+      "Retratos personales, profesionales, artísticos o marca personal.",
+    min: 180000,
+    max: 350000,
+    perHourMin: 40000,
+    perHourMax: 70000,
+  },
+  evento_social: {
+    label: "Evento social / empresarial",
+    description:
+      "Bodas, bautizos, quince años, eventos empresariales o celebraciones.",
+    min: 650000,
+    max: 1800000,
+    perHourMin: 90000,
+    perHourMax: 160000,
+    asksGuestCount: true,
+  },
+  grados: {
+    label: "Grados / colegio",
+    description:
+      "Paquetes escolares con fotos individuales, grupales, cartilla o entregables impresos.",
+    min: 700000,
+    max: 1600000,
+    perUnitMin: 22000,
+    perUnitMax: 45000,
+    unitLabel: "estudiante",
+    asksGuestCount: true,
+  },
+  producto_marca: {
+    label: "Fotografía de producto / gastronomía",
+    description:
+      "Fotos para restaurantes, productos, espacios, hospedajes, marcas o redes.",
+    min: 250000,
+    max: 750000,
+    perUnitMin: 25000,
+    perUnitMax: 60000,
+    unitLabel: "producto/foto",
+  },
 };
 
 const serviceZones: Record<ServiceZoneKey, ServiceZoneRule> = {
@@ -126,6 +266,41 @@ const serviceZones: Record<ServiceZoneKey, ServiceZoneRule> = {
     surchargePercent: 0,
     requiresTravelReview: false,
   },
+  sabana_norte: {
+    label: "Sabana norte",
+    description:
+      "Sesquilé, Guasca, Sopó, Tocancipá, Gachancipá, Chía, Cajicá, Zipaquirá y alrededores.",
+    surchargePercent: 10,
+    requiresTravelReview: false,
+  },
+  bogota: {
+    label: "Bogotá",
+    description: "Servicio dentro de Bogotá o zonas urbanas cercanas.",
+    surchargePercent: 10,
+    requiresTravelReview: false,
+  },
+  cundinamarca_lejano: {
+    label: "Cundinamarca lejano",
+    description: "Municipios más alejados dentro de Cundinamarca.",
+    surchargePercent: 25,
+    requiresTravelReview: false,
+  },
+  fuera_cundinamarca: {
+    label: "Fuera de Cundinamarca",
+    description:
+      "Servicios fuera de Cundinamarca con desplazamiento estándar. Casos lejanos o especiales se revisan manualmente.",
+    surchargePercent: 30,
+    requiresTravelReview: false,
+  },
+  especial_fuera_cobertura: {
+    label: "Solicitud especial / destino lejano",
+    description:
+      "Cartagena, Costa, otra ciudad lejana o servicio que requiera vuelos, hospedaje o logística especial. No tiene porcentaje fijo.",
+    surchargePercent: 0,
+    requiresTravelReview: true,
+  },
+
+  // Compatibilidad con registros anteriores.
   municipio_cercano: {
     label: "Municipio cercano",
     description:
@@ -136,45 +311,51 @@ const serviceZones: Record<ServiceZoneKey, ServiceZoneRule> = {
   bogota_sabana: {
     label: "Bogotá / Sabana",
     description: "Bogotá, Chía, Cajicá, Zipaquirá u otras zonas de la sabana.",
-    surchargePercent: 20,
+    surchargePercent: 10,
     requiresTravelReview: false,
-  },
-  cundinamarca_lejano: {
-    label: "Cundinamarca lejano",
-    description: "Municipios más alejados dentro de Cundinamarca.",
-    surchargePercent: 30,
-    requiresTravelReview: false,
-  },
-  fuera_cundinamarca: {
-    label: "Fuera de Cundinamarca / otra ciudad",
-    description:
-      "Requiere revisión de transporte, hospedaje, alimentación, tiempos de traslado y disponibilidad.",
-    surchargePercent: 0,
-    requiresTravelReview: true,
   },
 };
 
-const serviceOptions = Object.entries(quoteRules).map(([value, rule]) => ({
-  value: value as ServiceKey,
-  label: rule.label,
+const publicServiceKeys: ServiceKey[] = [
+  "matrimonio_boda",
+  "quince_anos",
+  "bautizo",
+  "cumpleanos",
+  "grados_escolares",
+  "evento_empresarial",
+  "retrato_individual",
+  "pareja_embarazo",
+  "familiar",
+  "mascotas",
+  "producto",
+  "gastronomia",
+  "hospedaje_espacios",
+  "impresiones",
+  "web_software",
+  "otro",
+];
+
+const publicZoneKeys: ServiceZoneKey[] = [
+  "guatavita",
+  "sabana_norte",
+  "bogota",
+  "cundinamarca_lejano",
+  "fuera_cundinamarca",
+  "especial_fuera_cobertura",
+];
+
+const serviceOptions = publicServiceKeys.map((value) => ({
+  value,
+  label: quoteRules[value].label,
 }));
 
-const zoneOptions = Object.entries(serviceZones).map(([value, zone]) => ({
-  value: value as ServiceZoneKey,
-  label: zone.label,
+const zoneOptions = publicZoneKeys.map((value) => ({
+  value,
+  label: serviceZones[value].label,
 }));
-
-function formatCOP(value: number) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 function generateQuoteCode() {
   const date = new Date();
-
   const datePart = date.toISOString().slice(0, 10).replaceAll("-", "");
   const timePart = date.toTimeString().slice(0, 8).replaceAll(":", "");
   const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -189,6 +370,11 @@ function getDurationHours(hoursValue: string, minutesValue: string) {
   return hours + minutes / 60;
 }
 
+function getBillableHours(durationHours: number) {
+  if (durationHours <= 0) return 4;
+  return Math.max(durationHours, 4);
+}
+
 function getDurationTotalMinutes(hoursValue: string, minutesValue: string) {
   const hours = Math.max(Number(hoursValue) || 0, 0);
   const minutes = Math.max(Number(minutesValue) || 0, 0);
@@ -200,9 +386,7 @@ function getDurationLabel(hoursValue: string, minutesValue: string) {
   const hours = Math.max(Number(hoursValue) || 0, 0);
   const minutes = Math.max(Number(minutesValue) || 0, 0);
 
-  if (hours === 0 && minutes === 0) {
-    return "Por definir";
-  }
+  if (hours === 0 && minutes === 0) return "Por definir";
 
   const parts: string[] = [];
 
@@ -217,23 +401,134 @@ function getDurationLabel(hoursValue: string, minutesValue: string) {
   return parts.join(" y ");
 }
 
+function getEstimate({
+  serviceType,
+  serviceZone,
+  durationHours,
+  quantity,
+  printedDelivery,
+  albumOrFrame,
+}: {
+  serviceType: ServiceKey;
+  serviceZone: ServiceZoneKey;
+  durationHours: number;
+  quantity: string;
+  printedDelivery: boolean;
+  albumOrFrame: boolean;
+}) {
+  const selectedRule = quoteRules[serviceType];
+  const selectedZone = serviceZones[serviceZone];
+  const parsedQuantity = Math.max(Number(quantity) || 0, 0);
+  const billableHours = getBillableHours(durationHours);
+
+  let baseMin = selectedRule.min;
+  let baseMax = selectedRule.max;
+
+  if (selectedRule.perHourMin && billableHours > 4) {
+    const extraHours = billableHours - 4;
+
+    baseMin += extraHours * selectedRule.perHourMin;
+    baseMax +=
+      extraHours * (selectedRule.perHourMax ?? selectedRule.perHourMin);
+  }
+
+  if (selectedRule.perUnitMin && parsedQuantity > 1) {
+    const extraUnits = parsedQuantity - 1;
+
+    baseMin += extraUnits * selectedRule.perUnitMin;
+    baseMax +=
+      extraUnits * (selectedRule.perUnitMax ?? selectedRule.perUnitMin);
+  }
+
+  if (printedDelivery) {
+    baseMin += 80000;
+    baseMax += 280000;
+  }
+
+  if (albumOrFrame) {
+    baseMin += 120000;
+    baseMax += 650000;
+  }
+
+  const surchargePercent = selectedZone.requiresTravelReview
+    ? 0
+    : selectedZone.surchargePercent;
+
+  const surchargeMin = baseMin * (surchargePercent / 100);
+  const surchargeMax = baseMax * (surchargePercent / 100);
+
+  return {
+    baseMin: Math.round(baseMin),
+    baseMax: Math.round(baseMax),
+    surchargePercent,
+    surchargeMin: Math.round(surchargeMin),
+    surchargeMax: Math.round(surchargeMax),
+    totalMin: Math.round(baseMin + surchargeMin),
+    totalMax: Math.round(baseMax + surchargeMax),
+    billableHours,
+  };
+}
+
+function buildInternalPricingNotes({
+  durationHours,
+  billableHours,
+  selectedZone,
+}: {
+  durationHours: number;
+  billableHours: number;
+  selectedZone: ServiceZoneRule;
+}) {
+  const notes: string[] = [];
+
+  if (durationHours > 0 && durationHours < 4) {
+    notes.push(
+      "El cliente solicitó menos de 4 horas. Aplicar mínimo interno de 4 horas por preparación, trabajo y desplazamiento."
+    );
+  }
+
+  if (durationHours > 8) {
+    notes.push(
+      "El cliente solicitó más de 8 horas. Revisar recargo, disponibilidad del equipo, alimentación, transporte y condiciones especiales."
+    );
+  }
+
+  if (selectedZone.requiresTravelReview) {
+    notes.push(
+      "Destino especial o fuera de cobertura estándar. No aplicar porcentaje fijo; revisar transporte, hospedaje, vuelos, alimentación, tiempos de traslado y disponibilidad."
+    );
+  } else if (selectedZone.surchargePercent > 0) {
+    notes.push(
+      `Recargo interno de desplazamiento sugerido: ${selectedZone.surchargePercent}%.`
+    );
+  }
+
+  notes.push(`Horas facturables internas de referencia: ${billableHours}.`);
+  notes.push(
+    "No mostrar valores al cliente. La cotización final se define después de revisar detalles o realizar reunión."
+  );
+
+  return notes.join("\n");
+}
+
 export default function ServiceQuoteForm() {
   const supabase = createClient();
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [serviceType, setServiceType] =
-    useState<ServiceKey>("sesion_individual");
+  const [email, setEmail] = useState("");
+  const [customerDocument, setCustomerDocument] = useState("");
+  const [serviceType, setServiceType] = useState<ServiceKey>("matrimonio_boda");
   const [date, setDate] = useState("");
-  const [serviceZone, setServiceZone] =
-    useState<ServiceZoneKey>("guatavita");
+  const [serviceZone, setServiceZone] = useState<ServiceZoneKey>("guatavita");
   const [location, setLocation] = useState("");
-  const [durationHoursValue, setDurationHoursValue] = useState("2");
+  const [durationHoursValue, setDurationHoursValue] = useState("4");
   const [durationMinutesValue, setDurationMinutesValue] = useState("0");
   const [quantity, setQuantity] = useState("1");
+  const [guestCount, setGuestCount] = useState("");
   const [digitalDelivery, setDigitalDelivery] = useState(true);
   const [printedDelivery, setPrintedDelivery] = useState(false);
   const [albumOrFrame, setAlbumOrFrame] = useState(false);
+  const [meetingType, setMeetingType] = useState<MeetingType>("por_definir");
   const [details, setDetails] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -256,99 +551,62 @@ export default function ServiceQuoteForm() {
     [durationHoursValue, durationMinutesValue]
   );
 
-  const estimate = useMemo(() => {
-    const parsedQuantity = Math.max(Number(quantity) || 0, 0);
+  const estimate = useMemo(
+    () =>
+      getEstimate({
+        serviceType,
+        serviceZone,
+        durationHours,
+        quantity,
+        printedDelivery,
+        albumOrFrame,
+      }),
+    [
+      albumOrFrame,
+      durationHours,
+      printedDelivery,
+      quantity,
+      serviceType,
+      serviceZone,
+    ]
+  );
 
-    let baseMin = selectedRule.min;
-    let baseMax = selectedRule.max;
+  const internalPricingNotes = useMemo(
+    () =>
+      buildInternalPricingNotes({
+        durationHours,
+        billableHours: estimate.billableHours,
+        selectedZone,
+      }),
+    [durationHours, estimate.billableHours, selectedZone]
+  );
 
-    if (selectedRule.perHourMin && durationHours > 2) {
-      const extraHours = durationHours - 2;
-
-      baseMin += extraHours * selectedRule.perHourMin;
-      baseMax +=
-        extraHours * (selectedRule.perHourMax ?? selectedRule.perHourMin);
-    }
-
-    if (selectedRule.perUnitMin && parsedQuantity > 1) {
-      const extraUnits = parsedQuantity - 1;
-
-      baseMin += extraUnits * selectedRule.perUnitMin;
-      baseMax +=
-        extraUnits * (selectedRule.perUnitMax ?? selectedRule.perUnitMin);
-    }
-
-    if (printedDelivery) {
-      baseMin += 80000;
-      baseMax += 280000;
-    }
-
-    if (albumOrFrame) {
-      baseMin += 120000;
-      baseMax += 650000;
-    }
-
-    const surchargePercent = selectedZone.requiresTravelReview
-      ? 0
-      : selectedZone.surchargePercent;
-
-    const surchargeMin = baseMin * (surchargePercent / 100);
-    const surchargeMax = baseMax * (surchargePercent / 100);
-
-    const totalMin = baseMin + surchargeMin;
-    const totalMax = baseMax + surchargeMax;
-
-    return {
-      baseMin: Math.round(baseMin),
-      baseMax: Math.round(baseMax),
-      surchargePercent,
-      surchargeMin: Math.round(surchargeMin),
-      surchargeMax: Math.round(surchargeMax),
-      totalMin: Math.round(totalMin),
-      totalMax: Math.round(totalMax),
-      label: `${formatCOP(Math.round(totalMin))} - ${formatCOP(
-        Math.round(totalMax)
-      )}`,
-      baseLabel: `${formatCOP(Math.round(baseMin))} - ${formatCOP(
-        Math.round(baseMax)
-      )}`,
-      surchargeLabel:
-        surchargePercent > 0
-          ? `${formatCOP(Math.round(surchargeMin))} - ${formatCOP(
-              Math.round(surchargeMax)
-            )}`
-          : formatCOP(0),
-    };
-  }, [
-    albumOrFrame,
-    durationHours,
-    printedDelivery,
-    quantity,
-    selectedRule,
-    selectedZone,
-  ]);
+  const showGuestCount = selectedRule.asksGuestCount;
 
   function buildWhatsappMessage(quoteCode: string) {
     const quantityLabel = selectedRule.unitLabel
       ? `${quantity || "Por definir"} ${selectedRule.unitLabel}(s)`
       : `${quantity || "Por definir"}`;
 
-    const travelLine = selectedZone.requiresTravelReview
-      ? "Requiere revisión manual por desplazamiento."
-      : `Recargo estimado: ${selectedZone.surchargePercent}% (${estimate.surchargeLabel})`;
-
-    const travelNote = selectedZone.requiresTravelReview
-      ? "Al ser un servicio fuera de Cundinamarca, el valor final puede variar según transporte, hospedaje, alimentación, tiempos de traslado y disponibilidad."
-      : "El valor puede ajustarse según disponibilidad, ubicación exacta, complejidad del servicio y condiciones finales de entrega.";
+    const meetingLabel =
+      meetingType === "virtual"
+        ? "Reunión virtual"
+        : meetingType === "presencial"
+        ? "Reunión presencial"
+        : meetingType === "whatsapp"
+        ? "Continuar por WhatsApp"
+        : "Por definir con el equipo";
 
     const lines = [
-      "*SAMORA STUDIO*",
-      "*Solicitud de cotización*",
+      "*SAMORA ESTUDIO*",
+      "*Nueva solicitud de cotización*",
       "",
       "--------------------------------",
       `*Código:* ${quoteCode}`,
       `*Cliente:* ${name || "Por completar"}`,
       `*WhatsApp:* ${phone || "Por completar"}`,
+      `*Correo:* ${email || "Por completar"}`,
+      `*Documento:* ${customerDocument || "Por completar"}`,
       "",
       "*Servicio solicitado*",
       `- Tipo: ${selectedRule.label}`,
@@ -357,29 +615,26 @@ export default function ServiceQuoteForm() {
       `- Lugar exacto: ${location || "Por definir"}`,
       `- Duración estimada: ${durationLabel}`,
       `- Cantidad aproximada: ${quantityLabel}`,
+      `- Invitados: ${
+        showGuestCount ? guestCount || "Por definir" : "No aplica / no indicado"
+      }`,
       "",
-      "*Entregables*",
+      "*Entregables solicitados*",
       `- Entrega digital: ${digitalDelivery ? "Sí" : "No"}`,
       `- Entrega impresa: ${printedDelivery ? "Sí" : "No"}`,
       `- Álbum, marco, cartilla o entregable especial: ${
         albumOrFrame ? "Sí" : "No"
       }`,
       "",
-      "*Estimación generada por la web*",
-      `- Valor base estimado: ${estimate.baseLabel}`,
-      `- Desplazamiento: ${travelLine}`,
-      `- Rango estimado: *${estimate.label}*`,
-      "",
-      "*Nota importante*",
-      travelNote,
-      "",
-      "Este valor es orientativo y debe ser confirmado por Samora Studio antes de aprobar el servicio.",
+      "*Reunión de definición*",
+      `- Preferencia del cliente: ${meetingLabel}`,
+      "- El equipo de Samora Estudio revisará la solicitud y coordinará una reunión o conversación para definir detalles, disponibilidad, entregables y condiciones finales.",
       "",
       "*Detalles adicionales*",
       details || "Sin detalles adicionales.",
       "",
       "--------------------------------",
-      "Cotización generada desde la página web de Samora Studio.",
+      "Solicitud generada desde la página web de Samora Estudio.",
     ];
 
     return lines.join("\n");
@@ -394,11 +649,16 @@ export default function ServiceQuoteForm() {
     const quoteCode = generateQuoteCode();
     const finalWhatsappMessage = buildWhatsappMessage(quoteCode);
 
+    const shouldReviewTravel = selectedZone.requiresTravelReview;
+    const shouldReviewDuration = durationHours > 8;
+
     const { error } = await supabase.from("quote_requests").insert({
       quote_code: quoteCode,
 
       customer_name: name || null,
       customer_phone: phone || null,
+      customer_email: email || null,
+      customer_document: customerDocument || null,
 
       service_type: serviceType,
       service_label: selectedRule.label,
@@ -413,6 +673,7 @@ export default function ServiceQuoteForm() {
       duration_hours: durationHours,
 
       quantity: Number(quantity) || null,
+      guest_count: showGuestCount ? Number(guestCount) || null : null,
 
       digital_delivery: digitalDelivery,
       printed_delivery: printedDelivery,
@@ -430,16 +691,22 @@ export default function ServiceQuoteForm() {
       estimated_min_cop: estimate.totalMin,
       estimated_max_cop: estimate.totalMax,
 
-      requires_travel_review: selectedZone.requiresTravelReview,
+      requires_travel_review: shouldReviewTravel,
       requires_manual_review: true,
+      internal_pricing_notes: internalPricingNotes,
+
+      meeting_requested: true,
+      meeting_type: meetingType,
+      meeting_status: "pendiente_programar",
 
       whatsapp_message: finalWhatsappMessage,
 
-      status: selectedZone.requiresTravelReview ? "new_travel_review" : "new",
+      status:
+        shouldReviewTravel || shouldReviewDuration ? "new_travel_review" : "new",
     });
 
     if (error) {
-      setMessage(`No se pudo guardar la cotización: ${error.message}`);
+      setMessage(`No se pudo guardar la solicitud: ${error.message}`);
       setSaving(false);
       return;
     }
@@ -448,7 +715,7 @@ export default function ServiceQuoteForm() {
       finalWhatsappMessage
     )}`;
 
-    setMessage("Cotización guardada. Abriendo WhatsApp...");
+    setMessage("Solicitud guardada. Abriendo WhatsApp...");
     setSaving(false);
 
     window.open(finalWhatsappLink, "_blank", "noopener,noreferrer");
@@ -462,49 +729,44 @@ export default function ServiceQuoteForm() {
       <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-12">
         <div>
           <p className="text-xs uppercase tracking-[0.35em] text-white/35">
-            Cotización automática
+            Solicitud personalizada
           </p>
 
           <h2 className="mt-4 text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl md:text-5xl">
-            Calcula un valor estimado y envíalo por WhatsApp.
+            Realiza tu solicitud y coordinamos una propuesta final contigo.
           </h2>
 
           <p className="mt-5 text-sm leading-6 text-white/50 sm:text-base sm:leading-7">
-            Este formulario genera una cotización orientativa según el tipo de
-            servicio, duración, cantidad, entregables y zona del servicio. El
-            valor final debe ser confirmado por Samora Studio.
+            Completa la información inicial de tu servicio. El equipo de Samora
+            Estudio revisará la solicitud y podrá programar una reunión virtual
+            o presencial para definir detalles, disponibilidad, entregables y
+            valor final.
           </p>
 
           <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-5">
             <p className="text-sm uppercase tracking-[0.25em] text-white/35">
-              Estimado actual
+              Siguiente paso
             </p>
 
-            <p className="mt-3 text-3xl font-semibold tracking-[-0.04em]">
-              {estimate.label}
+            <p className="mt-3 text-2xl font-semibold tracking-[-0.04em]">
+              Revisión y reunión de definición
             </p>
 
-            {estimate.surchargePercent > 0 && (
-              <p className="mt-3 text-sm leading-6 text-white/45">
-                Incluye recargo estimado de desplazamiento del{" "}
-                {estimate.surchargePercent}%.
-              </p>
-            )}
+            <p className="mt-3 text-sm leading-6 text-white/45">
+              No mostramos valores automáticos en la web. La cotización final se
+              envía únicamente después de revisar el servicio, resolver dudas y
+              confirmar las condiciones con el cliente.
+            </p>
 
             {selectedZone.requiresTravelReview && (
               <div className="mt-4 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-4">
                 <p className="text-sm leading-6 text-yellow-100/80">
-                  Este servicio requiere revisión manual por desplazamiento. El
-                  valor final puede variar según transporte, hospedaje,
-                  alimentación, tiempos de traslado y disponibilidad.
+                  Esta zona requiere revisión especial de desplazamiento. El
+                  equipo definirá transporte, hospedaje, tiempos y logística
+                  antes de enviar una propuesta final.
                 </p>
               </div>
             )}
-
-            <p className="mt-3 text-sm leading-6 text-white/45">
-              Rango sujeto a disponibilidad, ubicación, complejidad del servicio
-              y condiciones finales de entrega.
-            </p>
           </div>
         </div>
 
@@ -515,6 +777,7 @@ export default function ServiceQuoteForm() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Nombre">
               <input
+                required
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="Tu nombre"
@@ -524,9 +787,31 @@ export default function ServiceQuoteForm() {
 
             <Field label="WhatsApp">
               <input
+                required
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
                 placeholder="Ej: 319 000 0000"
+                className="input-quote"
+              />
+            </Field>
+
+            <Field label="Correo electrónico">
+              <input
+                required
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="correo@ejemplo.com"
+                className="input-quote"
+              />
+            </Field>
+
+            <Field label="Cédula o documento">
+              <input
+                required
+                value={customerDocument}
+                onChange={(event) => setCustomerDocument(event.target.value)}
+                placeholder="Ej: 1000000000"
                 className="input-quote"
               />
             </Field>
@@ -545,6 +830,10 @@ export default function ServiceQuoteForm() {
                   </option>
                 ))}
               </select>
+
+              <p className="mt-2 text-xs leading-5 text-white/35">
+                {selectedRule.description}
+              </p>
             </Field>
 
             <Field label="Fecha aproximada">
@@ -576,9 +865,10 @@ export default function ServiceQuoteForm() {
               <input
                 value={location}
                 onChange={(event) => setLocation(event.target.value)}
-                placeholder="Ej: Guatavita, Sesquilé, Bogotá, Medellín..."
+                placeholder="Ej: Guatavita, Bogotá, Cartagena, nombre del lugar..."
                 className="input-quote"
               />
+
               <p className="mt-2 text-xs leading-5 text-white/35">
                 {selectedZone.description}
               </p>
@@ -598,6 +888,7 @@ export default function ServiceQuoteForm() {
                     placeholder="Horas"
                     className="input-quote"
                   />
+
                   <p className="mt-2 text-xs text-white/35">Horas</p>
                 </div>
 
@@ -614,12 +905,15 @@ export default function ServiceQuoteForm() {
                     placeholder="Minutos"
                     className="input-quote"
                   />
+
                   <p className="mt-2 text-xs text-white/35">Minutos</p>
                 </div>
               </div>
 
               <p className="mt-2 text-xs leading-5 text-white/35">
-                Duración seleccionada: {durationLabel}
+                Duración seleccionada: {durationLabel}. Si es menor a 4 horas,
+                el equipo revisará la tarifa mínima interna. Si supera 8 horas,
+                se evaluarán condiciones adicionales.
               </p>
             </Field>
 
@@ -627,9 +921,9 @@ export default function ServiceQuoteForm() {
               label={
                 selectedRule.unitLabel
                   ? `Cantidad de ${selectedRule.unitLabel}s`
-                  : "Cantidad"
+                  : "Cantidad aproximada"
               }
-              full
+              full={!showGuestCount}
             >
               <input
                 type="number"
@@ -638,6 +932,34 @@ export default function ServiceQuoteForm() {
                 onChange={(event) => setQuantity(event.target.value)}
                 className="input-quote"
               />
+            </Field>
+
+            {showGuestCount && (
+              <Field label="Cantidad de invitados">
+                <input
+                  type="number"
+                  min="0"
+                  value={guestCount}
+                  onChange={(event) => setGuestCount(event.target.value)}
+                  placeholder="Ej: 100"
+                  className="input-quote"
+                />
+              </Field>
+            )}
+
+            <Field label="Preferencia de reunión" full>
+              <select
+                value={meetingType}
+                onChange={(event) =>
+                  setMeetingType(event.target.value as MeetingType)
+                }
+                className="input-quote"
+              >
+                <option value="por_definir">Por definir con el equipo</option>
+                <option value="virtual">Reunión virtual</option>
+                <option value="presencial">Reunión presencial</option>
+                <option value="whatsapp">Continuar por WhatsApp</option>
+              </select>
             </Field>
           </div>
 
@@ -665,7 +987,7 @@ export default function ServiceQuoteForm() {
             <textarea
               value={details}
               onChange={(event) => setDetails(event.target.value)}
-              placeholder="Cuéntanos qué tienes en mente, número de personas, tipo de entrega, referencias o cualquier detalle importante."
+              placeholder="Cuéntanos qué tienes en mente: tipo de evento, número de personas, ceremonia, recepción, sesión previa, entregables, referencias, horarios o cualquier detalle importante."
               rows={4}
               className="input-quote resize-none"
             />
@@ -677,8 +999,8 @@ export default function ServiceQuoteForm() {
             className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-white px-7 py-3 text-sm font-medium text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving
-              ? "Guardando cotización..."
-              : "Enviar cotización por WhatsApp"}
+              ? "Guardando solicitud..."
+              : "Enviar solicitud por WhatsApp"}
           </button>
 
           {message && (
@@ -688,8 +1010,9 @@ export default function ServiceQuoteForm() {
           )}
 
           <p className="mt-3 text-center text-xs leading-5 text-white/35">
-            La cotización será guardada y enviada a Samora Studio para revisar
-            disponibilidad, detalles y valor final.
+            La solicitud será guardada y enviada a Samora Estudio. El equipo
+            revisará disponibilidad, detalles, reunión y valor final antes de
+            compartir una cotización formal.
           </p>
         </form>
       </div>
@@ -766,6 +1089,7 @@ function CheckOption({
         onChange={(event) => onChange(event.target.checked)}
         className="hidden"
       />
+
       <span>{checked ? "✓" : "+"}</span>
       <span>{label}</span>
     </label>

@@ -6,21 +6,21 @@ import ServiceQuoteForm from "@/components/ServiceQuoteForm";
 export const metadata: Metadata = {
   title: "Servicios de fotografía profesional",
   description:
-    "Servicios de fotografía profesional para retratos, eventos, productos, impresiones fotográficas y desarrollo web para marcas. Sesiones visuales con estética elegante y entrega cuidada.",
+    "Servicios de fotografía profesional para matrimonios, quince años, bautizos, cumpleaños, grados, eventos empresariales, retratos, producto, gastronomía, impresiones y desarrollo web.",
   alternates: {
     canonical: "/servicios",
   },
   openGraph: {
-    title: "Servicios de fotografía profesional | Samora Studio",
+    title: "Servicios de fotografía profesional | Samora Estudio",
     description:
-      "Retratos profesionales, fotografía de eventos, fotografía de producto, impresiones fotográficas y desarrollo web con presentación premium.",
+      "Fotografía profesional para eventos, marcas y recuerdos especiales. Solicita una propuesta personalizada según tu evento, ubicación y entregables.",
     url: "/servicios",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Servicios de fotografía profesional Samora Studio",
+        alt: "Servicios de fotografía profesional Samora Estudio",
       },
     ],
   },
@@ -28,29 +28,60 @@ export const metadata: Metadata = {
 
 const services = [
   {
-    title: "Retratos profesionales",
+    title: "Matrimonios y bodas",
     description:
-      "Sesiones fotográficas para perfiles personales, profesionales, artísticos, familiares o marca personal.",
+      "Cobertura fotográfica y audiovisual para ceremonia, recepción, sesión de pareja, preboda, álbum digital, photobook y recuerdos impresos.",
+    href: "/portafolio/eventos-especiales",
+    action: "Ver bodas y eventos",
   },
   {
-    title: "Eventos y celebraciones",
+    title: "Quince años, bautizos y cumpleaños",
     description:
-      "Cobertura fotográfica para bodas, bautizos, quince años, grados, reuniones y recuerdos importantes.",
+      "Registro de celebraciones familiares y eventos sociales con enfoque en momentos importantes, invitados, detalles y recuerdos especiales.",
+    href: "/portafolio/eventos-especiales",
+    action: "Ver celebraciones",
   },
   {
-    title: "Fotografía de producto",
+    title: "Grados y eventos escolares",
     description:
-      "Imágenes para tiendas, marcas, restaurantes y emprendimientos que necesitan presentar sus productos con mayor calidad visual.",
+      "Fotografía para instituciones, estudiantes, grupos, cartillas, paquetes escolares y entregables digitales o impresos.",
+    href: "/portafolio/eventos-especiales",
+    action: "Ver eventos escolares",
   },
   {
-    title: "Impresiones y recuerdos",
+    title: "Eventos empresariales",
     description:
-      "Productos fotográficos impresos, marcos, copias y entregas físicas para conservar momentos importantes.",
+      "Cobertura para reuniones, lanzamientos, conferencias, actividades corporativas y contenido visual para marcas o equipos.",
+    href: "/portafolio/eventos-especiales",
+    action: "Ver eventos empresariales",
+  },
+  {
+    title: "Retratos y sesiones personales",
+    description:
+      "Sesiones individuales, pareja, embarazo, familia, mascotas, perfiles profesionales, artistas y marca personal.",
+    href: "/portafolio/retratos",
+    action: "Ver retratos",
+  },
+  {
+    title: "Producto, gastronomía y espacios",
+    description:
+      "Fotografía para restaurantes, coctelería, productos, hospedajes, espacios comerciales, catálogos, redes sociales y tiendas online.",
+    href: "/portafolio/fotografia-de-producto",
+    action: "Ver fotografía comercial",
+  },
+  {
+    title: "Impresiones, marcos y recuerdos",
+    description:
+      "Fotos impresas, ampliaciones, marcos, photobooks, recuerdos físicos y productos personalizados para conservar momentos especiales.",
+    href: "/tienda",
+    action: "Ver tienda",
   },
   {
     title: "Desarrollo web y software",
     description:
-      "Diseño de páginas web, catálogos digitales, tiendas online y soluciones a medida para marcas o negocios.",
+      "Páginas web, catálogos digitales, tiendas online y soluciones a medida para marcas, negocios o proyectos creativos.",
+    href: "/contacto",
+    action: "Consultar servicio",
   },
 ];
 
@@ -69,31 +100,32 @@ export default function ServiciosPage() {
               </p>
 
               <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-[1.05] tracking-[-0.04em] sm:text-5xl md:text-7xl">
-                Servicios visuales para momentos, marcas y proyectos que
-                importan.
+                Fotografía profesional para eventos, marcas y recuerdos
+                especiales.
               </h1>
 
               <p className="mt-6 max-w-2xl text-base leading-7 text-white/55 md:text-lg md:leading-8">
-                En Samora Studio diseñamos experiencias visuales para personas,
-                marcas, eventos y recuerdos que merecen una presentación
-                cuidada, auténtica y atemporal.
+                Explora nuestros servicios, revisa trabajos relacionados y
+                solicita una propuesta personalizada según tu evento, ubicación,
+                entregables y necesidades.
               </p>
             </div>
 
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6">
               <p className="text-xs uppercase tracking-[0.3em] text-white/35">
-                Cotización rápida
+                Cotización personalizada
               </p>
 
               <p className="mt-4 text-2xl font-semibold tracking-[-0.03em]">
-                Obtén un rango estimado antes de escribir.
+                Cuéntanos qué necesitas y prepararemos una propuesta según tu
+                evento, lugar, fecha y entregables.
               </p>
 
               <a
                 href="#cotizador"
                 className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
               >
-                Calcular cotización
+                Realizar cotización
               </a>
             </div>
           </div>
@@ -101,13 +133,10 @@ export default function ServiciosPage() {
           {/* SERVICIOS */}
           <div className="mt-10 grid gap-5 sm:mt-12 md:mt-14 md:grid-cols-2 md:gap-6">
             {services.map((service, index) => (
-              <article
+              <Link
                 key={service.title}
-                className={`premium-card premium-card-hover rounded-[1.5rem] p-6 md:p-7 ${
-                  services.length % 2 !== 0 && index === services.length - 1
-                    ? "md:col-span-2"
-                    : ""
-                }`}
+                href={service.href}
+                className="group premium-card premium-card-hover rounded-[1.5rem] p-6 transition hover:border-white/25 md:p-7"
               >
                 <p className="text-sm uppercase tracking-[0.3em] text-white/30">
                   {String(index + 1).padStart(2, "0")}
@@ -120,7 +149,11 @@ export default function ServiciosPage() {
                 <p className="mt-4 text-sm leading-7 text-white/50 md:text-base">
                   {service.description}
                 </p>
-              </article>
+
+                <p className="mt-6 inline-flex items-center text-sm font-medium text-white/65 transition group-hover:translate-x-1 group-hover:text-white">
+                  {service.action} →
+                </p>
+              </Link>
             ))}
           </div>
 
@@ -134,9 +167,9 @@ export default function ServiciosPage() {
               </h2>
 
               <p className="mt-3 max-w-xl text-sm leading-7 text-white/50 md:text-base">
-                Podemos adaptar el servicio según el tipo de sesión, cantidad de
-                fotografías, estilo visual, formato de entrega, producto impreso
-                o desarrollo digital que necesites.
+                Podemos adaptar el servicio según el tipo de evento, sesión,
+                cantidad de fotografías, estilo visual, formato de entrega,
+                producto impreso o desarrollo digital que necesites.
               </p>
             </div>
 
