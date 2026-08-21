@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -649,14 +650,19 @@ function buildClientMeetingMessage(quote: QuoteRequest, meetingValues?: MeetingV
 
 function buildClientFinalQuoteMessage(quote: QuoteRequest) {
   const customerName = quote.customer_name || "gracias por contactarnos";
-  const finalPrice = quote.final_price_cop ? formatCOP(quote.final_price_cop) : getInternalReferenceLabel(quote);
+  const finalPrice = quote.final_price_cop
+    ? formatCOP(quote.final_price_cop)
+    : "Por definir";
+
   return [
     "*SAMORA ESTUDIO*",
-    "*Cotización final*",
+    "*Propuesta personalizada*",
     "",
     `Hola ${customerName}, gracias por esperar mientras revisábamos tu solicitud.`,
     "",
-    "Te compartimos la cotización final del servicio revisado por nuestro equipo:",
+    `Te compartimos la propuesta personalizada preparada por el equipo de Samora Estudio para el servicio de *${quote.service_label}*.`,
+    "",
+    "En el PDF adjunto encontrarás el alcance del servicio, entregables, condiciones, valor final y detalles importantes para continuar con la reserva.",
     "",
     `*Código:* ${quote.quote_code}`,
     `*Servicio:* ${quote.service_label}`,
@@ -665,14 +671,16 @@ function buildClientFinalQuoteMessage(quote: QuoteRequest) {
     `*Duración:* ${getDurationLabel(quote)}`,
     quote.guest_count ? `*Invitados:* ${quote.guest_count}` : "",
     quote.selected_package ? `*Paquete:* ${quote.selected_package}` : "",
+    `*Valor final:* ${finalPrice}`,
     "",
-    "*Valor final*",
-    `*${finalPrice}*`,
+    "Por favor revisa la propuesta y confírmanos si deseas aprobarla para coordinar la agenda final del servicio.",
     "",
-    "Para continuar, por favor confírmanos si apruebas esta cotización y coordinamos la agenda final del servicio.",
+    "Quedamos atentos a cualquier ajuste o duda.",
     "",
     "Samora Estudio",
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: QuoteRequest[] }) {
@@ -932,16 +940,26 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
 
   function openClientFinalQuoteWhatsapp(quote: QuoteRequest) {
     const phone = normalizePhoneForWhatsapp(quote.customer_phone);
+
     if (!phone) {
       setMessage("El cliente no tiene un WhatsApp válido.");
       return;
     }
-    if (!quote.final_price_cop && !quote.final_pdf_url) {
-      setMessage("Define un valor final o PDF antes de enviar la cotización final.");
+
+    if (!quote.final_price_cop) {
+      setMessage("Define y guarda el valor final antes de enviar el mensaje final.");
       return;
     }
-    const link = `https://wa.me/${phone}?text=${encodeURIComponent(buildClientFinalQuoteMessage(quote))}`;
+
+    const link = `https://wa.me/${phone}?text=${encodeURIComponent(
+      buildClientFinalQuoteMessage(quote)
+    )}`;
+
     window.open(link, "_blank", "noopener,noreferrer");
+
+    setMessage(
+      "WhatsApp abierto. Recuerda adjuntar manualmente el PDF de la propuesta antes de enviarlo al cliente."
+    );
   }
 
   return (
@@ -1162,8 +1180,9 @@ function QuoteDetail({
           </h3>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/40">
-            Usa estas acciones cuando la reunión ya esté realizada y el equipo
-            haya definido el paquete, entregables, condiciones y valor final.
+            Primero genera y guarda el PDF de la propuesta. Luego abre WhatsApp con
+            el mensaje final y adjunta manualmente el archivo antes de enviarlo
+            al cliente.
           </p>
         </div>
 
@@ -1176,12 +1195,19 @@ function QuoteDetail({
             Copiar mensaje interno
           </button>
 
+          <Link
+            href={`/admin/cotizaciones/${quote.id}/propuesta`}
+            className="rounded-full border border-white/15 bg-white/[0.03] px-5 py-3 text-center text-sm text-white/80 transition hover:border-white/35 hover:bg-white hover:text-black"
+          >
+            Ver / generar propuesta PDF
+          </Link>
+
           <button
             type="button"
             onClick={() => onOpenClientFinalQuoteWhatsapp(quote)}
-            className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
+            className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2"
           >
-            Enviar cotización final
+            Enviar mensaje final y adjuntar PDF
           </button>
         </div>
 
@@ -1193,6 +1219,11 @@ function QuoteDetail({
         >
           Crear evento en Google Calendar
         </button>
+
+        <p className="mt-3 text-xs leading-5 text-white/35">
+          La propuesta final debe enviarse únicamente cuando el valor, los
+          entregables, las condiciones y el PDF estén revisados por el equipo.
+        </p>
       </div>
     </div>
   );
