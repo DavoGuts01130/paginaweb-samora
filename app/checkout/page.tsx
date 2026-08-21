@@ -1,126 +1,166 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useCart } from "@/components/CartProvider";
 import { createClient } from "@/lib/supabase/client";
 
-type CheckoutForm = {
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string;
-  department: string;
-  city: string;
-  address: string;
-  reference: string;
-  notes: string;
-};
+const whatsappNumber =
+  process.env.NEXT_PUBLIC_SAMORA_WHATSAPP_NUMBER ?? "573138429568";
+
+function formatCOP(value: number) {
+  return `$${Number(value ?? 0).toLocaleString("es-CO")}`;
+}
+
+function buildOrderCode() {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10).replaceAll("-", "");
+  const time = now
+    .toTimeString()
+    .slice(0, 8)
+    .replaceAll(":", "");
+  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+
+  return `PED-${date}-${time}-${random}`;
+}
+
+function normalizePhone(phone: string) {
+  return phone.replace(/\D/g, "");
+}
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
-  const supabase = createClient();
-
-  const [loading, setLoading] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerDocument, setCustomerDocument] = useState("");
+  const [deliveryType, setDeliveryType] = useState("pickup");
+  const [deliveryCity, setDeliveryCity] = useState("Guatavita, Cundinamarca");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryNotes, setDeliveryNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("nequi");
+  const [customerNotes, setCustomerNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+  const [createdOrderCode, setCreatedOrderCode] = useState("");
 
-  const [form, setForm] = useState<CheckoutForm>({
-    customer_name: "",
-    customer_email: "",
-    customer_phone: "",
-    department: "",
-    city: "",
-    address: "",
-    reference: "",
-    notes: "",
-  });
+  const canSubmit = useMemo(() => {
+    return (
+      items.length > 0 &&
+      customerName.trim().length >= 3 &&
+      normalizePhone(customerPhone).length >= 10 &&
+      !isSubmitting
+    );
+  }, [customerName, customerPhone, isSubmitting, items.length]);
 
-  useEffect(() => {
-    async function loadProfile() {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!canSubmit) {
+      setMessage("Completa tu nombre, WhatsApp y los productos del carrito.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage("");
+
+    const supabase = createClient();
+    const orderCode = buildOrderCode();
+    const subtotal = totalPrice;
+    const deliveryPrice = 0;
+    const discount = 0;
+    const total = subtotal + deliveryPrice - discount;
+
+    try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) {
-        setLoadingProfile(false);
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, phone, department, city, address, reference")
-        .eq("id", user.id)
+      const { data: order, error: orderError } = await supabase
+        .from("store_orders")
+        .insert({
+          order_code: orderCode,
+          user_id: user?.id ?? null,
+          customer_name: customerName.trim(),
+          customer_phone: normalizePhone(customerPhone),
+          customer_email: customerEmail.trim() || null,
+          customer_document: customerDocument.trim() || null,
+          status: "pending_payment",
+          subtotal_cop: subtotal,
+          delivery_price_cop: deliveryPrice,
+          discount_cop: discount,
+          total_cop: total,
+          delivery_type: deliveryType,
+          delivery_status: "pending",
+          delivery_address: deliveryAddress.trim() || null,
+          delivery_city: deliveryCity.trim() || null,
+          delivery_notes: deliveryNotes.trim() || null,
+          payment_provider: "manual",
+          payment_method: paymentMethod,
+          payment_status: "pending",
+          customer_notes: customerNotes.trim() || null,
+          source: "web_store",
+        })
+        .select("id, order_code")
         .single();
 
-      setForm((current) => ({
-        ...current,
-        customer_name: profile?.full_name ?? "",
-        customer_email: user.email ?? "",
-        customer_phone: profile?.phone ?? "",
-        department: profile?.department ?? "",
-        city: profile?.city ?? "",
-        address: profile?.address ?? "",
-        reference: profile?.reference ?? "",
+      if (orderError || !order) {
+        throw new Error(orderError?.message || "No se pudo crear el pedido.");
+      }
+
+      const orderItems = items.map((item) => ({
+        order_id: order.id,
+        product_id: item.id,
+        product_name: item.name,
+        product_slug: item.slug,
+        product_image_url: item.image_url,
+        unit_price_cop: item.price,
+        quantity: item.quantity,
+        total_cop: item.price * item.quantity,
+        selected_options: {},
       }));
 
-      setLoadingProfile(false);
+      const { error: itemsError } = await supabase
+        .from("store_order_items")
+        .insert(orderItems);
+
+      if (itemsError) {
+        throw new Error(itemsError.message);
+      }
+
+      setCreatedOrderCode(order.order_code);
+      clearCart();
+      setMessage("Pedido creado correctamente.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No se pudo crear el pedido. Intenta nuevamente."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    loadProfile();
-  }, [supabase]);
-
-  function updateField(field: keyof CheckoutForm, value: string) {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const productList = items
+    .map(
+      (item) =>
+        `• ${item.name} x${item.quantity} (${formatCOP(item.price * item.quantity)})`
+    )
+    .join("\n");
 
-    if (items.length === 0) {
-      setMessage("El carrito está vacío.");
-      return;
-    }
+  const confirmationMessage = encodeURIComponent(
+    `Hola, acabo de crear un pedido en la tienda de Samora Estudio.\n\nCódigo: ${createdOrderCode}\n\nQuedo atento/a para confirmar disponibilidad, pago y entrega.`
+  );
 
-    setLoading(true);
-    setMessage("");
+  const cartMessage = encodeURIComponent(
+    `Hola, quiero confirmar este pedido en la tienda de Samora Estudio:\n\n${productList}\n\nTotal: ${formatCOP(totalPrice)}\n\nQuedo atento/a para confirmar disponibilidad, pago y entrega.`
+  );
 
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        customer_name: form.customer_name,
-        customer_email: form.customer_email,
-        customer_phone: form.customer_phone,
-        department: form.department,
-        city: form.city,
-        address: form.address,
-        reference: form.reference,
-        notes: form.notes,
-        total: totalPrice,
-        items,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setMessage(`Error: ${data.error}`);
-      setLoading(false);
-      return;
-    }
-
-    clearCart();
-    window.location.href = `/checkout/success?order=${data.orderId}&code=${data.orderCode}`;
-  }
-
-  const inputClass =
-    "min-h-12 rounded-xl border border-white/10 bg-black px-4 py-3 text-base text-white outline-none transition placeholder:text-white/30 focus:border-white/40 md:text-sm";
+  const whatsappLink = createdOrderCode
+    ? `https://wa.me/${whatsappNumber}?text=${confirmationMessage}`
+    : `https://wa.me/${whatsappNumber}?text=${cartMessage}`;
 
   return (
     <>
@@ -135,228 +175,322 @@ export default function CheckoutPage() {
             ← Volver al carrito
           </Link>
 
-          <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_0.75fr] lg:items-start">
-            <div>
-              <div className="animate-fade-up">
-                <p className="text-sm uppercase tracking-[0.35em] text-white/35">
-                  Checkout
-                </p>
+          <div className="mt-8 animate-fade-up">
+            <p className="text-sm uppercase tracking-[0.35em] text-white/35">
+              Checkout
+            </p>
 
-                <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] md:text-6xl">
-                  Confirmar compra
-                </h1>
+            <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] md:text-6xl">
+              Confirmar pedido
+            </h1>
 
-                <p className="mt-5 max-w-2xl text-base leading-7 text-white/55 md:text-lg md:leading-8">
-                  Confirma tus datos y la información de envío para registrar el
-                  pedido.
-                </p>
-              </div>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/55 md:text-lg">
+              Registra tus datos para que el equipo de Samora Estudio confirme
+              disponibilidad, pago y entrega.
+            </p>
+          </div>
 
-              {loadingProfile && (
-                <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/45">
-                  Cargando datos guardados...
-                </div>
-              )}
+          {createdOrderCode ? (
+            <div className="premium-card mt-10 rounded-[2rem] p-6 sm:p-8">
+              <p className="text-sm uppercase tracking-[0.35em] text-green-300">
+                Pedido creado
+              </p>
 
-              <form
-                onSubmit={handleSubmit}
-                className="premium-card mt-8 rounded-[1.5rem] p-5 sm:p-6"
-              >
-                <div className="flex flex-col gap-2 border-b border-white/10 pb-5">
-                  <h2 className="text-xl font-semibold">Datos del cliente</h2>
-                  <p className="text-sm leading-6 text-white/45">
-                    Estos datos serán usados para registrar el pedido y
-                    coordinar la entrega.
-                  </p>
-                </div>
+              <h2 className="mt-4 text-3xl font-bold tracking-[-0.03em]">
+                Tu pedido quedó registrado.
+              </h2>
 
-                <div className="mt-6 grid gap-4">
-                  <input
-                    name="customer_name"
-                    required
-                    value={form.customer_name}
-                    onChange={(e) =>
-                      updateField("customer_name", e.target.value)
-                    }
-                    placeholder="Nombre completo"
-                    autoComplete="name"
-                    className={inputClass}
-                  />
+              <p className="mt-4 text-white/55">
+                Código del pedido: <span className="text-white">{createdOrderCode}</span>
+              </p>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <input
-                      name="customer_email"
-                      type="email"
-                      required
-                      value={form.customer_email}
-                      onChange={(e) =>
-                        updateField("customer_email", e.target.value)
-                      }
-                      placeholder="Correo electrónico"
-                      autoComplete="email"
-                      className={inputClass}
-                    />
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/45">
+                Por ahora el pago se confirma manualmente. El equipo revisará el
+                pedido y te indicará cómo continuar. Cuando Wompi esté listo,
+                este mismo flujo podrá generar enlaces de pago en línea.
+              </p>
 
-                    <input
-                      name="customer_phone"
-                      required
-                      value={form.customer_phone}
-                      onChange={(e) =>
-                        updateField("customer_phone", e.target.value)
-                      }
-                      placeholder="Teléfono"
-                      autoComplete="tel"
-                      inputMode="tel"
-                      className={inputClass}
-                    />
-                  </div>
-
-                  <div className="pt-4">
-                    <h3 className="text-sm uppercase tracking-[0.25em] text-white/35">
-                      Información de envío
-                    </h3>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <input
-                      name="department"
-                      required
-                      value={form.department}
-                      onChange={(e) =>
-                        updateField("department", e.target.value)
-                      }
-                      placeholder="Departamento"
-                      autoComplete="address-level1"
-                      className={inputClass}
-                    />
-
-                    <input
-                      name="city"
-                      required
-                      value={form.city}
-                      onChange={(e) => updateField("city", e.target.value)}
-                      placeholder="Ciudad / Municipio"
-                      autoComplete="address-level2"
-                      className={inputClass}
-                    />
-                  </div>
-
-                  <input
-                    name="address"
-                    required
-                    value={form.address}
-                    onChange={(e) => updateField("address", e.target.value)}
-                    placeholder="Dirección"
-                    autoComplete="street-address"
-                    className={inputClass}
-                  />
-
-                  <input
-                    name="reference"
-                    value={form.reference}
-                    onChange={(e) => updateField("reference", e.target.value)}
-                    placeholder="Referencia de entrega (opcional)"
-                    className={inputClass}
-                  />
-
-                  <textarea
-                    name="notes"
-                    value={form.notes}
-                    onChange={(e) => updateField("notes", e.target.value)}
-                    placeholder="Notas del pedido"
-                    rows={4}
-                    className="rounded-xl border border-white/10 bg-black px-4 py-3 text-base text-white outline-none transition placeholder:text-white/30 focus:border-white/40 md:text-sm"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading || items.length === 0}
-                  className="premium-button mt-8 min-h-12 w-full rounded-full bg-white px-8 py-4 text-sm font-medium text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-8 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
                 >
-                  {loading ? "Guardando pedido..." : "Confirmar pedido"}
-                </button>
-
-                {message && (
-                  <p className="mt-4 rounded-2xl border border-red-400/20 bg-red-400/10 p-4 text-center text-sm text-red-300">
-                    {message}
-                  </p>
-                )}
-              </form>
-            </div>
-
-            <aside className="premium-card h-fit rounded-[1.5rem] p-5 sm:p-6 lg:sticky lg:top-28">
-              <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
-                <div>
-                  <h2 className="text-xl font-semibold">Resumen del pedido</h2>
-                  <p className="mt-2 text-sm text-white/40">
-                    {items.length} producto{items.length === 1 ? "" : "s"} en
-                    el carrito
-                  </p>
-                </div>
+                  Enviar confirmación por WhatsApp
+                </a>
 
                 <Link
-                  href="/carrito"
-                  className="rounded-full border border-white/15 px-4 py-2 text-xs text-white/55 transition hover:bg-white hover:text-black"
+                  href="/tienda"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-8 py-3 text-sm text-white/65 transition hover:bg-white hover:text-black"
                 >
-                  Editar
+                  Volver a tienda
                 </Link>
               </div>
+            </div>
+          ) : items.length === 0 ? (
+            <div className="premium-card mt-10 rounded-[1.5rem] p-8 text-center">
+              <p className="text-lg font-semibold">Tu carrito está vacío.</p>
 
-              <div className="mt-6 max-h-[420px] space-y-4 overflow-y-auto pr-1">
-                {items.length > 0 ? (
-                  items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-3 border-b border-white/5 pb-4"
-                    >
+              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-white/45">
+                Agrega productos antes de continuar al checkout.
+              </p>
+
+              <Link
+                href="/tienda"
+                className="mt-6 inline-flex rounded-full bg-white px-7 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
+              >
+                Ir a tienda
+              </Link>
+            </div>
+          ) : (
+            <form
+              onSubmit={handleSubmit}
+              className="mt-10 grid gap-8 lg:grid-cols-[1fr_0.42fr] lg:items-start"
+            >
+              <div className="space-y-5">
+                <Section title="Datos del cliente">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Nombre completo" required>
+                      <input
+                        value={customerName}
+                        onChange={(event) => setCustomerName(event.target.value)}
+                        placeholder="Nombre y apellido"
+                        className="checkout-input"
+                      />
+                    </Field>
+
+                    <Field label="WhatsApp" required>
+                      <input
+                        value={customerPhone}
+                        onChange={(event) => setCustomerPhone(event.target.value)}
+                        placeholder="Ej: 3138429568"
+                        className="checkout-input"
+                      />
+                    </Field>
+
+                    <Field label="Correo">
+                      <input
+                        type="email"
+                        value={customerEmail}
+                        onChange={(event) => setCustomerEmail(event.target.value)}
+                        placeholder="correo@ejemplo.com"
+                        className="checkout-input"
+                      />
+                    </Field>
+
+                    <Field label="Documento">
+                      <input
+                        value={customerDocument}
+                        onChange={(event) =>
+                          setCustomerDocument(event.target.value)
+                        }
+                        placeholder="Cédula o NIT"
+                        className="checkout-input"
+                      />
+                    </Field>
+                  </div>
+                </Section>
+
+                <Section title="Entrega">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Tipo de entrega">
+                      <select
+                        value={deliveryType}
+                        onChange={(event) => setDeliveryType(event.target.value)}
+                        className="checkout-input"
+                      >
+                        <option value="pickup">Recoger / coordinar entrega</option>
+                        <option value="delivery">Domicilio / envío</option>
+                      </select>
+                    </Field>
+
+                    <Field label="Ciudad / municipio">
+                      <input
+                        value={deliveryCity}
+                        onChange={(event) => setDeliveryCity(event.target.value)}
+                        placeholder="Ciudad o municipio"
+                        className="checkout-input"
+                      />
+                    </Field>
+
+                    <Field label="Dirección" className="sm:col-span-2">
+                      <input
+                        value={deliveryAddress}
+                        onChange={(event) =>
+                          setDeliveryAddress(event.target.value)
+                        }
+                        placeholder="Dirección si aplica"
+                        className="checkout-input"
+                      />
+                    </Field>
+
+                    <Field label="Notas de entrega" className="sm:col-span-2">
+                      <textarea
+                        value={deliveryNotes}
+                        onChange={(event) => setDeliveryNotes(event.target.value)}
+                        placeholder="Ej: horario, punto de referencia, indicaciones especiales..."
+                        rows={4}
+                        className="checkout-input resize-none"
+                      />
+                    </Field>
+                  </div>
+                </Section>
+
+                <Section title="Pago">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Método de pago">
+                      <select
+                        value={paymentMethod}
+                        onChange={(event) => setPaymentMethod(event.target.value)}
+                        className="checkout-input"
+                      >
+                        <option value="nequi">Nequi</option>
+                        <option value="transferencia">Transferencia bancaria</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="otro">Otro</option>
+                      </select>
+                    </Field>
+
+                    <div className="rounded-2xl border border-white/10 bg-black p-4 text-sm leading-6 text-white/45">
+                      El pago se confirmará manualmente. Más adelante se podrá
+                      conectar Wompi para checkout en línea.
+                    </div>
+
+                    <Field label="Notas del pedido" className="sm:col-span-2">
+                      <textarea
+                        value={customerNotes}
+                        onChange={(event) => setCustomerNotes(event.target.value)}
+                        placeholder="Detalles adicionales del pedido..."
+                        rows={4}
+                        className="checkout-input resize-none"
+                      />
+                    </Field>
+                  </div>
+                </Section>
+              </div>
+
+              <aside className="premium-card h-fit rounded-[1.5rem] p-5 sm:p-6 lg:sticky lg:top-28">
+                <h2 className="text-xl font-semibold">Resumen</h2>
+
+                <div className="mt-5 space-y-4 border-b border-white/10 pb-5">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex gap-3 text-sm">
                       {item.image_url && (
                         <img
                           src={item.image_url}
                           alt={item.name}
-                          className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                          className="h-14 w-14 rounded-xl object-cover"
                         />
                       )}
 
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">{item.name}</p>
-                        <p className="text-sm text-white/45">
-                          Cantidad: {item.quantity}
-                        </p>
+                        <p className="mt-1 text-white/40">x{item.quantity}</p>
                       </div>
 
-                      <p className="shrink-0 text-sm font-semibold">
-                        ${(item.price * item.quantity).toLocaleString("es-CO")}
+                      <p className="shrink-0 font-medium">
+                        {formatCOP(item.price * item.quantity)}
                       </p>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-white/45">
-                    No hay productos en el carrito.
+                  ))}
+                </div>
+
+                <div className="mt-5 space-y-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/45">Subtotal</span>
+                    <span>{formatCOP(totalPrice)}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/45">Entrega</span>
+                    <span className="text-white/55">Por coordinar</span>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-5">
+                  <span className="text-white/55">Total</span>
+                  <span className="text-2xl font-bold">{formatCOP(totalPrice)}</span>
+                </div>
+
+                {message && (
+                  <p className="mt-5 rounded-2xl border border-white/10 bg-black p-4 text-sm leading-6 text-white/55">
+                    {message}
                   </p>
                 )}
-              </div>
 
-              <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-6">
-                <span className="text-white/55">Total</span>
-                <span className="text-2xl font-bold">
-                  ${totalPrice.toLocaleString("es-CO")}
-                </span>
-              </div>
+                <button
+                  type="submit"
+                  disabled={!canSubmit}
+                  className="mt-6 flex min-h-12 w-full items-center justify-center rounded-full bg-white px-8 py-3 text-sm font-medium text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35"
+                >
+                  {isSubmitting ? "Creando pedido..." : "Confirmar pedido"}
+                </button>
 
-              <div className="mt-6 rounded-2xl border border-white/10 bg-black p-4 text-sm leading-6 text-white/45">
-                Si tienes una cuenta activa, este pedido quedará asociado a tu
-                perfil para seguimiento posterior.
-              </div>
-
-              <div className="mt-4 rounded-2xl border border-white/10 bg-black p-4 text-sm leading-6 text-white/45">
-                Recibirás un correo con el código de pedido, seguimiento y
-                comprobante.
-              </div>
-            </aside>
-          </div>
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex min-h-12 w-full items-center justify-center rounded-full border border-green-500 px-8 py-3 text-sm font-medium text-green-400 transition hover:bg-green-500 hover:text-black"
+                >
+                  Consultar por WhatsApp
+                </a>
+              </aside>
+            </form>
+          )}
         </section>
       </main>
+
+      <style jsx global>{`
+        .checkout-input {
+          min-height: 3.25rem;
+          width: 100%;
+          border-radius: 1rem;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(0, 0, 0, 0.6);
+          padding: 0.85rem 1rem;
+          color: white;
+          outline: none;
+        }
+
+        .checkout-input::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        .checkout-input:focus {
+          border-color: rgba(255, 255, 255, 0.4);
+        }
+      `}</style>
     </>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="premium-card rounded-[1.5rem] p-5 sm:p-6">
+      <h2 className="text-xl font-semibold">{title}</h2>
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  label,
+  required,
+  className = "",
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className={`block ${className}`}>
+      <span className="mb-2 block text-xs uppercase tracking-[0.22em] text-white/35">
+        {label} {required && <span className="text-red-300">*</span>}
+      </span>
+      {children}
+    </label>
   );
 }

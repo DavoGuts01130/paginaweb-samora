@@ -55,7 +55,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
               <Link
                 href="/tienda"
-                className="premium-button mt-6 inline-flex rounded-full bg-white px-7 py-3 text-sm font-medium text-black"
+                className="mt-6 inline-flex rounded-full bg-white px-7 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
               >
                 Ir a tienda
               </Link>
@@ -76,14 +76,15 @@ export default async function ProductDetailPage({ params }: Props) {
       ? "bg-yellow-400"
       : "bg-white/70";
 
-  const whatsappNumber = "573192709536";
+  const whatsappNumber =
+    process.env.NEXT_PUBLIC_SAMORA_WHATSAPP_NUMBER ?? "573138429568";
 
   const productUrl = `${
-    process.env.NEXT_PUBLIC_SITE_URL || "https://samora.vercel.app"
+    process.env.NEXT_PUBLIC_SITE_URL || "https://samoraestudiocreativo.com"
   }/tienda/${product.slug}`;
 
   const whatsappMessage = encodeURIComponent(
-    `Hola, vi este producto en su tienda:\n\n📸 ${product.name}\n🔗 ${productUrl}\n\nQuisiera más información 🙌`
+    `Hola, vi este producto en la tienda de Samora Estudio:\n\n📸 ${product.name}\n🔗 ${productUrl}\n\nQuisiera más información.`
   );
 
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
@@ -150,7 +151,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
               <p className="mt-4 text-sm text-white/60">
                 {stock > 0
-                  ? "En stock • Entrega rápida en 24-48h"
+                  ? "En stock • Entrega por coordinar con el equipo"
                   : "Producto agotado"}
               </p>
 
@@ -204,7 +205,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
                     <div className="mt-5 grid gap-3 text-sm text-white/55 sm:grid-cols-3 lg:grid-cols-1">
                       <Benefit text="Pedido seguro" />
-                      <Benefit text="Entrega en 24-48h" />
+                      <Benefit text="Pago manual ahora / Wompi más adelante" />
                       <Benefit text="Atención directa por WhatsApp" />
                     </div>
                   </>

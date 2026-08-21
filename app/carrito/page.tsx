@@ -1,13 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useCart } from "@/components/CartProvider";
-import Link from "next/link";
 
 export default function CarritoPage() {
-  const { items, removeItem, clearCart, totalPrice } = useCart();
+  const { items, removeItem, updateItemQuantity, clearCart, totalPrice } = useCart();
 
-  const whatsappNumber = "573192709536";
+  const whatsappNumber =
+    process.env.NEXT_PUBLIC_SAMORA_WHATSAPP_NUMBER ?? "573138429568";
 
   const productList = items
     .map(
@@ -19,7 +20,7 @@ export default function CarritoPage() {
     .join("\n");
 
   const message = encodeURIComponent(
-    `Hola, quiero consultar este pedido:\n\n${productList}\n\nTotal: $${totalPrice.toLocaleString(
+    `Hola, quiero consultar este pedido en la tienda de Samora Estudio:\n\n${productList}\n\nTotal: $${totalPrice.toLocaleString(
       "es-CO"
     )}\n\n¿Está disponible?`
   );
@@ -64,7 +65,7 @@ export default function CarritoPage() {
 
               <Link
                 href="/tienda"
-                className="premium-button mt-6 inline-flex rounded-full bg-white px-7 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
+                className="mt-6 inline-flex rounded-full bg-white px-7 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
               >
                 Ir a tienda
               </Link>
@@ -93,11 +94,26 @@ export default function CarritoPage() {
                               {item.name}
                             </h3>
 
-                            <p className="mt-2 text-sm text-white/45">
-                              Cantidad: {item.quantity}
-                            </p>
+                            <div className="mt-3 flex flex-wrap items-center gap-3">
+                              <label className="text-sm text-white/45">
+                                Cantidad
+                              </label>
 
-                            <p className="mt-1 text-sm text-white/60">
+                              <input
+                                type="number"
+                                min={1}
+                                value={item.quantity}
+                                onChange={(event) =>
+                                  updateItemQuantity(
+                                    item.id,
+                                    Number(event.target.value)
+                                  )
+                                }
+                                className="h-10 w-20 rounded-xl border border-white/10 bg-black px-3 text-sm text-white outline-none focus:border-white/35"
+                              />
+                            </div>
+
+                            <p className="mt-3 text-sm text-white/60">
                               Unidad: ${item.price.toLocaleString("es-CO")}
                             </p>
                           </div>
@@ -153,14 +169,14 @@ export default function CarritoPage() {
                 </div>
 
                 <p className="mt-5 rounded-2xl border border-white/10 bg-black p-4 text-sm leading-6 text-white/45">
-                  Entrega estimada en 24-48h. También puedes consultar la
-                  disponibilidad del pedido por WhatsApp.
+                  Por ahora el pago se confirma manualmente. Más adelante esta
+                  estructura permitirá conectar Wompi para pagos en línea.
                 </p>
 
                 <div className="mt-6 flex flex-col gap-3">
                   <Link
                     href="/checkout"
-                    className="premium-button flex min-h-12 items-center justify-center rounded-full bg-white px-8 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
+                    className="flex min-h-12 items-center justify-center rounded-full bg-white px-8 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
                   >
                     Continuar al checkout
                   </Link>

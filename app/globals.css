@@ -313,3 +313,19 @@ button.bg-white:not(.premium-button):not(.samora-cta) svg {
   color: #000000 !important;
   stroke: currentColor;
 }
+
+/* Selects del admin de pedidos: opciones legibles en navegadores con popup blanco */
+.admin-store-select {
+  color-scheme: dark;
+}
+
+.admin-store-select option,
+.admin-store-select optgroup {
+  background-color: #0a0a0a !important;
+  color: #ffffff !important;
+}
+
+.admin-store-select option:checked {
+  background-color: #262626 !important;
+  color: #ffffff !important;
+}

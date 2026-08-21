@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     canonical: "/tienda",
   },
   openGraph: {
-    title: "Tienda | Samora Studio",
+    title: "Tienda | Samora Estudio",
     description:
       "Productos fotográficos y recuerdos impresos con presentación premium.",
     url: "/tienda",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
         url: "/og-tienda.jpg",
         width: 1200,
         height: 630,
-        alt: "Tienda Samora Studio",
+        alt: "Tienda Samora Estudio",
       },
     ],
   },
@@ -142,7 +142,7 @@ export default async function TiendaPage() {
                         {stock > 0 ? (
                           <Link
                             href={`/tienda/${product.slug}`}
-                            className="premium-button flex min-h-11 items-center justify-center rounded-full border border-white/20 px-5 py-2 text-sm transition hover:bg-white hover:text-black"
+                            className="flex min-h-11 items-center justify-center rounded-full border border-white/20 px-5 py-2 text-sm text-white transition hover:bg-white hover:text-black"
                           >
                             Ver producto
                           </Link>

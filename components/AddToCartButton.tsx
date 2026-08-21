@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/components/CartProvider";
 
@@ -43,17 +44,19 @@ export default function AddToCartButton({ product }: { product: Product }) {
         type="button"
         onClick={handleAdd}
         disabled={!isAvailable}
-        className="premium-button flex min-h-12 w-full items-center justify-center rounded-full bg-white px-8 py-4 text-sm font-medium text-black transition hover:scale-[1.02] hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/40 sm:w-auto"
+        className="flex min-h-12 w-full items-center justify-center rounded-full bg-white px-8 py-4 text-sm font-medium text-black transition hover:scale-[1.02] hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/40"
       >
-        {isAvailable ? "Comprar ahora" : "Producto agotado"}
+        {isAvailable ? "Agregar al carrito" : "Producto agotado"}
       </button>
 
       {added && (
-        <p className="mt-3 text-sm text-green-400">
-          Producto agregado al carrito 🛒
-        </p>
+        <div className="mt-3 rounded-2xl border border-green-400/20 bg-green-400/10 p-3 text-sm text-green-300">
+          Producto agregado al carrito.
+          <Link href="/carrito" className="ml-2 font-medium underline underline-offset-4">
+            Ver carrito
+          </Link>
+        </div>
       )}
     </div>
   );
 }
-
