@@ -59,7 +59,7 @@ video {
   color: #000000;
 }
 
-/* Scrollbar personalizada sin usar propiedades que generan warnings */
+/* Scrollbar personalizada sin warnings de compatibilidad */
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -143,6 +143,7 @@ select:-webkit-autofill:focus {
   transition: background-color 9999s ease-in-out 0s;
 }
 
+/* Cards premium */
 .premium-card {
   border: 1px solid rgba(255, 255, 255, 0.1);
   background:
@@ -178,12 +179,80 @@ select:-webkit-autofill:focus {
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-.premium-button {
-  box-shadow:
-    0 16px 45px rgba(255, 255, 255, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+/* Botones principales del sitio público */
+.premium-button,
+.samora-cta {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: #ffffff !important;
+  padding: 0.8rem 1.8rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1;
+  box-shadow: none;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
 }
 
+.premium-button:hover,
+.samora-cta:hover {
+  border-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 45px rgba(255, 255, 255, 0.08);
+}
+
+.premium-button:focus-visible,
+.samora-cta:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 4px;
+}
+
+.premium-button span,
+.premium-button svg,
+.samora-cta span,
+.samora-cta svg {
+  color: currentColor;
+}
+
+/* Variante sólida solo cuando realmente se quiera blanco desde el inicio */
+.samora-cta-solid {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  padding: 0.8rem 1.8rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.samora-cta-solid:hover {
+  background: rgba(255, 255, 255, 0.86) !important;
+  color: #000000 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 45px rgba(255, 255, 255, 0.08);
+}
+
+/* Line clamp sin warnings de orden */
 .line-clamp-2 {
   display: -webkit-box;
   overflow: hidden;
@@ -226,4 +295,21 @@ select:-webkit-autofill:focus {
   .no-print {
     display: none !important;
   }
+}
+
+/* Corrección para botones sólidos blancos del sitio público */
+a.bg-white:not(.premium-button):not(.samora-cta),
+button.bg-white:not(.premium-button):not(.samora-cta) {
+  color: #000000 !important;
+}
+
+a.bg-white:not(.premium-button):not(.samora-cta) *,
+button.bg-white:not(.premium-button):not(.samora-cta) * {
+  color: #000000 !important;
+}
+
+a.bg-white:not(.premium-button):not(.samora-cta) svg,
+button.bg-white:not(.premium-button):not(.samora-cta) svg {
+  color: #000000 !important;
+  stroke: currentColor;
 }
