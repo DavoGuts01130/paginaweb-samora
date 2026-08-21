@@ -796,6 +796,7 @@ type QuoteQuickMessageType =
   | "payment_proof"
   | "reservation_confirmed"
   | "service_reminder"
+  | "reservation_receipt"
   | "service_completed";
 
 function getPublicSiteUrl() {
@@ -917,6 +918,30 @@ function buildQuoteQuickWhatsappMessage(
       `*Abono registrado:* ${depositPaid}`,
       "",
       "Más adelante, si hace falta, te contactaremos para ultimar detalles del servicio.",
+      "",
+      `Puedes consultar el seguimiento aquí: ${trackingUrl}`,
+      "",
+      "Samora Estudio",
+    ].join("\n");
+  }
+
+  if (type === "reservation_receipt") {
+    return [
+      "*SAMORA ESTUDIO*",
+      "*Constancia de reserva*",
+      "",
+      `Hola ${customerName}, te compartimos la constancia de reserva de tu servicio.`,
+      "",
+      "En el PDF adjunto encontrarás el resumen de la reserva, fecha, hora, lugar, valor final, abono registrado y saldo pendiente si aplica.",
+      "",
+      `*Código:* ${quote.quote_code}`,
+      `*Servicio:* ${quote.service_label}`,
+      `*Fecha:* ${getConfirmedEventDateLabel(quote)}`,
+      `*Hora:* ${getConfirmedEventTimeLabel(quote)}`,
+      `*Lugar:* ${getConfirmedEventLocationLabel(quote)}`,
+      `*Valor final:* ${finalPrice}`,
+      `*Abono registrado:* ${depositPaid}`,
+      `*Saldo pendiente:* ${depositPending}`,
       "",
       `Puedes consultar el seguimiento aquí: ${trackingUrl}`,
       "",
@@ -1677,6 +1702,11 @@ function QuoteWhatsappQuickActions({
       description: "Envía detalles antes del evento o sesión.",
     },
     {
+      type: "reservation_receipt",
+      label: "Enviar constancia",
+      description: "Mensaje para adjuntar la constancia PDF.",
+    },
+    {
       type: "service_completed",
       label: "Servicio finalizado",
       description: "Agradece y cierra el servicio.",
@@ -2010,6 +2040,16 @@ function ReservationPanel({ values, quote, saving, onChange, onSave, onConfirm, 
         <button type="button" disabled={saving} onClick={onCancel} className="rounded-full border border-red-400/25 bg-red-400/10 px-5 py-3 text-sm text-red-100/80 transition hover:border-red-300/45 disabled:cursor-not-allowed disabled:opacity-60">
           Cancelar solicitud
         </button>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Link
+          href={`/admin/cotizaciones/${quote.id}/reserva`}
+          target="_blank"
+          className="rounded-full border border-white/15 bg-white/[0.03] px-5 py-3 text-center text-sm text-white/80 transition hover:border-white/35 hover:bg-white hover:text-black sm:col-span-2"
+        >
+          Ver / generar constancia de reserva
+        </Link>
       </div>
 
       <p className="mt-3 text-xs leading-5 text-white/35">

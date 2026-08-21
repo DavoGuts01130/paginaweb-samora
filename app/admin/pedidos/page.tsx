@@ -215,6 +215,7 @@ function buildStoreOrderWhatsappMessage(
     | "payment_confirmed"
     | "order_ready"
     | "order_delivered"
+    | "receipt_sent"
     | "order_cancelled"
 ) {
   const customerName = order.customer_name || "gracias por tu compra";
@@ -299,6 +300,22 @@ function buildStoreOrderWhatsappMessage(
       "Gracias por confiar en Samora Estudio. Esperamos que disfrutes este recuerdo.",
       "",
       `Seguimiento: ${trackingUrl}`,
+      "",
+      "Samora Estudio",
+    ].join("\n");
+  }
+
+  if (type === "receipt_sent") {
+    return [
+      ...baseHeader,
+      `Hola ${customerName}, te compartimos el comprobante de tu pedido.`,
+      "",
+      "En el PDF adjunto encontrarás el resumen de la compra, productos, valor total, estado de pago y datos de entrega registrados por el equipo de Samora Estudio.",
+      "",
+      `*Total:* ${formatCOP(order.total_cop)}`,
+      `*Pago:* ${paymentMethod}`,
+      "",
+      `También puedes consultar el seguimiento aquí: ${trackingUrl}`,
       "",
       "Samora Estudio",
     ].join("\n");
@@ -866,6 +883,11 @@ function StoreWhatsappActions({ order }: { order: StoreOrder }) {
       description: "Cierra la entrega con agradecimiento.",
     },
     {
+      key: "receipt_sent",
+      label: "Enviar comprobante",
+      description: "Mensaje para adjuntar el PDF del comprobante.",
+    },
+    {
       key: "order_cancelled",
       label: "Pedido cancelado",
       description: "Notifica cancelación con tono amable.",
@@ -888,6 +910,16 @@ function StoreWhatsappActions({ order }: { order: StoreOrder }) {
       )}
 
       <div className="mt-4 grid gap-2">
+        <Link
+          href={`/admin/pedidos/${order.id}/comprobante`}
+          target="_blank"
+          className="rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 transition hover:border-white/35 hover:bg-white hover:text-black"
+        >
+          <span className="block text-sm font-medium">Ver / generar comprobante</span>
+          <span className="mt-1 block text-xs opacity-55">
+            Abre la vista imprimible para guardar PDF.
+          </span>
+        </Link>
         {actions.map((action) => {
           const href = buildWhatsappHref(
             order.customer_phone,
