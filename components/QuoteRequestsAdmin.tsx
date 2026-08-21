@@ -791,6 +791,179 @@ function buildClientFinalQuoteMessage(quote: QuoteRequest) {
     .join("\n");
 }
 
+type QuoteQuickMessageType =
+  | "approval_deposit"
+  | "payment_proof"
+  | "reservation_confirmed"
+  | "service_reminder"
+  | "service_completed";
+
+function getPublicSiteUrl() {
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://samoraestudiocreativo.com"
+  ).replace(/\/$/, "");
+}
+
+function getQuoteTrackingUrl(code: string) {
+  return `${getPublicSiteUrl()}/seguimiento?code=${encodeURIComponent(code)}`;
+}
+
+function getConfirmedEventDateLabel(quote: QuoteRequest) {
+  return formatDateOnly(quote.confirmed_event_date || quote.event_date);
+}
+
+function getConfirmedEventTimeLabel(quote: QuoteRequest) {
+  if (quote.confirmed_start_time && quote.confirmed_end_time) {
+    return `${formatTimeReadable(quote.confirmed_start_time)} - ${formatTimeReadable(
+      quote.confirmed_end_time
+    )}`;
+  }
+
+  if (quote.confirmed_start_time) {
+    return formatTimeReadable(quote.confirmed_start_time);
+  }
+
+  return "Por definir";
+}
+
+function getConfirmedEventLocationLabel(quote: QuoteRequest) {
+  return quote.confirmed_location || quote.service_location || "Por definir";
+}
+
+function getDepositPendingValue(quote: QuoteRequest) {
+  return Math.max(
+    Number(quote.deposit_required_cop ?? 0) - Number(quote.deposit_paid_cop ?? 0),
+    0
+  );
+}
+
+function buildQuoteQuickWhatsappMessage(
+  quote: QuoteRequest,
+  type: QuoteQuickMessageType
+) {
+  const customerName = quote.customer_name || "gracias por contactarnos";
+  const trackingUrl = getQuoteTrackingUrl(quote.quote_code);
+  const finalPrice = quote.final_price_cop
+    ? formatCOP(quote.final_price_cop)
+    : "Por definir";
+  const depositRequired = formatCOP(quote.deposit_required_cop);
+  const depositPaid = formatCOP(quote.deposit_paid_cop);
+  const depositPending = formatCOP(getDepositPendingValue(quote));
+  const paymentMethod = `${paymentProviderLabels[quote.payment_provider ?? "manual"] ?? "Manual"} · ${
+    paymentMethodLabels[quote.payment_method ?? ""] ?? "Por definir"
+  }`;
+
+  if (type === "approval_deposit") {
+    return [
+      "*SAMORA ESTUDIO*",
+      "*Confirmación de propuesta y reserva*",
+      "",
+      `Hola ${customerName}, esperamos que hayas podido revisar la propuesta personalizada.`,
+      "",
+      "Para continuar, por favor confírmanos si apruebas la propuesta. Una vez aprobada, coordinamos el abono correspondiente para reservar la fecha del servicio.",
+      "",
+      `*Código:* ${quote.quote_code}`,
+      `*Servicio:* ${quote.service_label}`,
+      `*Valor final:* ${finalPrice}`,
+      `*Abono requerido:* ${depositRequired}`,
+      `*Abono pendiente:* ${depositPending}`,
+      `*Método de pago:* ${paymentMethod}`,
+      "",
+      `Puedes consultar el seguimiento aquí: ${trackingUrl}`,
+      "",
+      "Quedamos atentos a tu confirmación.",
+      "",
+      "Samora Estudio",
+    ].join("\n");
+  }
+
+  if (type === "payment_proof") {
+    return [
+      "*SAMORA ESTUDIO*",
+      "*Comprobante de abono*",
+      "",
+      `Hola ${customerName}, para confirmar la reserva del servicio necesitamos validar el abono acordado.`,
+      "",
+      `*Código:* ${quote.quote_code}`,
+      `*Servicio:* ${quote.service_label}`,
+      `*Abono requerido:* ${depositRequired}`,
+      `*Abonado registrado:* ${depositPaid}`,
+      `*Abono pendiente:* ${depositPending}`,
+      `*Método de pago:* ${paymentMethod}`,
+      "",
+      "Por favor envíanos el comprobante de pago por este chat para dejar la reserva confirmada.",
+      "",
+      `Seguimiento: ${trackingUrl}`,
+      "",
+      "Samora Estudio",
+    ].join("\n");
+  }
+
+  if (type === "reservation_confirmed") {
+    return [
+      "*SAMORA ESTUDIO*",
+      "*Reserva confirmada*",
+      "",
+      `Hola ${customerName}, tu reserva quedó confirmada correctamente.`,
+      "",
+      `*Código:* ${quote.quote_code}`,
+      `*Servicio:* ${quote.service_label}`,
+      `*Fecha:* ${getConfirmedEventDateLabel(quote)}`,
+      `*Hora:* ${getConfirmedEventTimeLabel(quote)}`,
+      `*Lugar:* ${getConfirmedEventLocationLabel(quote)}`,
+      `*Valor final:* ${finalPrice}`,
+      `*Abono registrado:* ${depositPaid}`,
+      "",
+      "Más adelante, si hace falta, te contactaremos para ultimar detalles del servicio.",
+      "",
+      `Puedes consultar el seguimiento aquí: ${trackingUrl}`,
+      "",
+      "Samora Estudio",
+    ].join("\n");
+  }
+
+  if (type === "service_reminder") {
+    return [
+      "*SAMORA ESTUDIO*",
+      "*Recordatorio del servicio*",
+      "",
+      `Hola ${customerName}, te recordamos los detalles del servicio reservado con Samora Estudio.`,
+      "",
+      `*Código:* ${quote.quote_code}`,
+      `*Servicio:* ${quote.service_label}`,
+      `*Fecha:* ${getConfirmedEventDateLabel(quote)}`,
+      `*Hora:* ${getConfirmedEventTimeLabel(quote)}`,
+      `*Lugar:* ${getConfirmedEventLocationLabel(quote)}`,
+      "",
+      "Por favor avísanos si hay algún cambio importante en la hora, ubicación o condiciones del servicio.",
+      "",
+      `Seguimiento: ${trackingUrl}`,
+      "",
+      "Samora Estudio",
+    ].join("\n");
+  }
+
+  return [
+    "*SAMORA ESTUDIO*",
+    "*Servicio finalizado*",
+    "",
+    `Hola ${customerName}, gracias por permitirnos acompañar este servicio.`,
+    "",
+    `*Código:* ${quote.quote_code}`,
+    `*Servicio:* ${quote.service_label}`,
+    "",
+    "Esperamos que la experiencia haya sido muy especial. Te estaremos compartiendo o coordinando la entrega del material según lo acordado.",
+    "",
+    "Gracias por confiar en Samora Estudio.",
+    "",
+    `Seguimiento: ${trackingUrl}`,
+    "",
+    "Samora Estudio",
+  ].join("\n");
+}
+
 export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: QuoteRequest[] }) {
   const supabase = createClient();
   const [quotes, setQuotes] = useState<QuoteRequest[]>(initialQuotes);
@@ -1155,6 +1328,25 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
     );
   }
 
+  function openClientQuickWhatsapp(
+    quote: QuoteRequest,
+    type: QuoteQuickMessageType
+  ) {
+    const phone = normalizePhoneForWhatsapp(quote.customer_phone);
+
+    if (!phone) {
+      setMessage("El cliente no tiene un WhatsApp válido.");
+      return;
+    }
+
+    const link = `https://wa.me/${phone}?text=${encodeURIComponent(
+      buildQuoteQuickWhatsappMessage(quote, type)
+    )}`;
+
+    window.open(link, "_blank", "noopener,noreferrer");
+    setMessage("WhatsApp abierto con el mensaje rápido. Revisa antes de enviarlo.");
+  }
+
   return (
     <div>
       <div className="grid gap-4 md:grid-cols-5">
@@ -1233,6 +1425,7 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
               onCopyWhatsappMessage={copyWhatsappMessage}
               onOpenClientMeetingWhatsapp={openClientMeetingWhatsapp}
               onOpenClientFinalQuoteWhatsapp={openClientFinalQuoteWhatsapp}
+              onOpenClientQuickWhatsapp={openClientQuickWhatsapp}
             />
           ) : (
             <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-sm text-white/45">Selecciona una solicitud para ver el detalle.</div>
@@ -1305,6 +1498,7 @@ function QuoteDetail({
   onCopyWhatsappMessage,
   onOpenClientMeetingWhatsapp,
   onOpenClientFinalQuoteWhatsapp,
+  onOpenClientQuickWhatsapp,
 }: {
   quote: QuoteRequest;
   editMode: boolean;
@@ -1327,6 +1521,7 @@ function QuoteDetail({
   onCopyWhatsappMessage: (quote: QuoteRequest) => void;
   onOpenClientMeetingWhatsapp: (quote: QuoteRequest, meetingValues?: MeetingValues) => void;
   onOpenClientFinalQuoteWhatsapp: (quote: QuoteRequest) => void;
+  onOpenClientQuickWhatsapp: (quote: QuoteRequest, type: QuoteQuickMessageType) => void;
 }) {
   return (
     <div>
@@ -1367,6 +1562,11 @@ function QuoteDetail({
         onConfirm={() => onSaveReservation({ confirm: true })}
         onComplete={() => onUpdateStatus(quote, "completed")}
         onCancel={() => onUpdateStatus(quote, "cancelled")}
+      />
+
+      <QuoteWhatsappQuickActions
+        quote={quote}
+        onOpenMessage={(type) => onOpenClientQuickWhatsapp(quote, type)}
       />
 
       <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-5">
@@ -1442,6 +1642,90 @@ function QuoteDetail({
     </div>
   );
 }
+
+
+function QuoteWhatsappQuickActions({
+  quote,
+  onOpenMessage,
+}: {
+  quote: QuoteRequest;
+  onOpenMessage: (type: QuoteQuickMessageType) => void;
+}) {
+  const actions: {
+    type: QuoteQuickMessageType;
+    label: string;
+    description: string;
+  }[] = [
+    {
+      type: "approval_deposit",
+      label: "Solicitar aprobación / abono",
+      description: "Pide confirmación de propuesta y reserva.",
+    },
+    {
+      type: "payment_proof",
+      label: "Solicitar comprobante",
+      description: "Pide soporte del abono acordado.",
+    },
+    {
+      type: "reservation_confirmed",
+      label: "Reserva confirmada",
+      description: "Confirma fecha, hora, lugar y abono.",
+    },
+    {
+      type: "service_reminder",
+      label: "Recordatorio del servicio",
+      description: "Envía detalles antes del evento o sesión.",
+    },
+    {
+      type: "service_completed",
+      label: "Servicio finalizado",
+      description: "Agradece y cierra el servicio.",
+    },
+  ];
+
+  const hasPhone = !!normalizePhoneForWhatsapp(quote.customer_phone);
+
+  return (
+    <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-5">
+      <p className="text-xs uppercase tracking-[0.25em] text-white/35">
+        Mensajes rápidos por WhatsApp
+      </p>
+
+      <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em]">
+        Seguimiento semiautomático del cliente
+      </h3>
+
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-white/40">
+        Abre WhatsApp con textos listos según el momento de la cotización. El
+        equipo debe revisar el mensaje antes de enviarlo.
+      </p>
+
+      {!hasPhone && (
+        <p className="mt-4 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-3 text-xs leading-5 text-yellow-100/80">
+          Esta solicitud no tiene un WhatsApp válido.
+        </p>
+      )}
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        {actions.map((action) => (
+          <button
+            key={action.type}
+            type="button"
+            disabled={!hasPhone}
+            onClick={() => onOpenMessage(action.type)}
+            className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition hover:border-white/30 hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-white/10 disabled:hover:bg-white/[0.03] disabled:hover:text-white"
+          >
+            <span className="block text-sm font-medium">{action.label}</span>
+            <span className="mt-1 block text-xs opacity-55">
+              {action.description}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 function QuoteReadView({ quote }: { quote: QuoteRequest }) {
   return (

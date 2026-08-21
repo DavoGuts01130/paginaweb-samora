@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
@@ -694,10 +694,14 @@ function TeamPhoto({
   src,
   className = "",
   imageClassName = "",
+  objectPosition = "center center",
+  imageStyle,
 }: {
   src: string;
   className?: string;
   imageClassName?: string;
+  objectPosition?: string;
+  imageStyle?: CSSProperties;
 }) {
   return (
     <div
@@ -707,6 +711,11 @@ function TeamPhoto({
         src={src}
         alt=""
         className={`h-full w-full object-cover ${imageClassName}`}
+        style={{
+          objectPosition,
+          transformOrigin: "center center",
+          ...imageStyle,
+        }}
         aria-hidden="true"
       />
     </div>
@@ -925,7 +934,10 @@ export default async function QuoteProposalPage({
               <TeamPhoto
                 src={TEAM_OWNER_2_IMAGE}
                 className="-ml-[20px] h-[218px] w-[218px]"
-                imageClassName="object-[center_center]"
+                objectPosition="center center"
+                imageStyle={{
+                  transform: "translateY(-10px) scale(1.16)",
+                }}
               />
             </div>
 

@@ -159,6 +159,171 @@ function getStatusClass(status: string) {
   return "border-white/10 bg-white/[0.03] text-white/60";
 }
 
+function normalizePhoneForWhatsapp(phone: string | null | undefined) {
+  const onlyNumbers = (phone ?? "").replace(/\D/g, "");
+
+  if (!onlyNumbers) return "";
+  if (onlyNumbers.startsWith("57")) return onlyNumbers;
+  if (onlyNumbers.length === 10) return `57${onlyNumbers}`;
+
+  return onlyNumbers;
+}
+
+function getPublicSiteUrl() {
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://samoraestudiocreativo.com"
+  ).replace(/\/$/, "");
+}
+
+function getTrackingUrl(code: string) {
+  return `${getPublicSiteUrl()}/seguimiento?code=${encodeURIComponent(code)}`;
+}
+
+function getOrderItemsSummary(order: StoreOrder) {
+  if (!order.store_order_items || order.store_order_items.length === 0) {
+    return "Productos por confirmar.";
+  }
+
+  return order.store_order_items
+    .map((item) => `• ${item.product_name} x${item.quantity} (${formatCOP(item.total_cop)})`)
+    .join("\n");
+}
+
+function getOrderDeliverySummary(order: StoreOrder) {
+  const deliveryType =
+    order.delivery_type === "delivery"
+      ? "Domicilio / envío"
+      : "Recoger / coordinar entrega";
+
+  return [
+    `*Tipo:* ${deliveryType}`,
+    `*Ciudad:* ${order.delivery_city || "Por coordinar"}`,
+    order.delivery_address ? `*Dirección:* ${order.delivery_address}` : "",
+    order.delivery_notes ? `*Notas:* ${order.delivery_notes}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function buildStoreOrderWhatsappMessage(
+  order: StoreOrder,
+  type:
+    | "order_received"
+    | "request_payment_proof"
+    | "payment_confirmed"
+    | "order_ready"
+    | "order_delivered"
+    | "order_cancelled"
+) {
+  const customerName = order.customer_name || "gracias por tu compra";
+  const trackingUrl = getTrackingUrl(order.order_code);
+  const itemsSummary = getOrderItemsSummary(order);
+  const paymentMethod = `${order.payment_provider === "wompi" ? "Wompi" : "Manual"} · ${getPaymentMethodLabel(order.payment_method)}`;
+
+  const baseHeader = ["*SAMORA ESTUDIO*", `*Pedido:* ${order.order_code}`, ""];
+
+  if (type === "order_received") {
+    return [
+      ...baseHeader,
+      `Hola ${customerName}, recibimos tu pedido de tienda correctamente.`,
+      "",
+      "*Resumen del pedido*",
+      itemsSummary,
+      "",
+      `*Total:* ${formatCOP(order.total_cop)}`,
+      `*Pago:* ${paymentMethod}`,
+      "",
+      "Nuestro equipo revisará disponibilidad, pago y entrega para continuar.",
+      "",
+      `Puedes consultar el seguimiento aquí: ${trackingUrl}`,
+      "",
+      "Samora Estudio",
+    ].join("\n");
+  }
+
+  if (type === "request_payment_proof") {
+    return [
+      ...baseHeader,
+      `Hola ${customerName}, para continuar con tu pedido necesitamos confirmar el pago.`,
+      "",
+      `*Total:* ${formatCOP(order.total_cop)}`,
+      `*Método seleccionado:* ${paymentMethod}`,
+      "",
+      "Por favor envíanos el comprobante de pago por este chat para validar la compra y coordinar la entrega.",
+      "",
+      `Seguimiento: ${trackingUrl}`,
+      "",
+      "Samora Estudio",
+    ].join("\n");
+  }
+
+  if (type === "payment_confirmed") {
+    return [
+      ...baseHeader,
+      `Hola ${customerName}, ya confirmamos el pago de tu pedido.`,
+      "",
+      "Ahora continuamos con la preparación y coordinación de entrega.",
+      "",
+      "*Entrega*",
+      getOrderDeliverySummary(order),
+      "",
+      `Seguimiento: ${trackingUrl}`,
+      "",
+      "Samora Estudio",
+    ].join("\n");
+  }
+
+  if (type === "order_ready") {
+    return [
+      ...baseHeader,
+      `Hola ${customerName}, tu pedido ya está listo para entrega o coordinación final.`,
+      "",
+      "*Entrega*",
+      getOrderDeliverySummary(order),
+      "",
+      "Por favor confírmanos disponibilidad para coordinar la entrega o recogida.",
+      "",
+      `Seguimiento: ${trackingUrl}`,
+      "",
+      "Samora Estudio",
+    ].join("\n");
+  }
+
+  if (type === "order_delivered") {
+    return [
+      ...baseHeader,
+      `Hola ${customerName}, confirmamos que tu pedido fue entregado.`,
+      "",
+      "Gracias por confiar en Samora Estudio. Esperamos que disfrutes este recuerdo.",
+      "",
+      `Seguimiento: ${trackingUrl}`,
+      "",
+      "Samora Estudio",
+    ].join("\n");
+  }
+
+  return [
+    ...baseHeader,
+    `Hola ${customerName}, te informamos que tu pedido fue cancelado.`,
+    "",
+    "Si tienes alguna duda o deseas revisar otra opción, puedes responder a este mensaje y con gusto te ayudaremos.",
+    "",
+    `Seguimiento: ${trackingUrl}`,
+    "",
+    "Samora Estudio",
+  ].join("\n");
+}
+
+function buildWhatsappHref(phone: string | null | undefined, message: string) {
+  const normalizedPhone = normalizePhoneForWhatsapp(phone);
+
+  if (!normalizedPhone) return "";
+
+  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
+}
+
 async function updateStoreOrderAction(formData: FormData) {
   "use server";
 
@@ -539,6 +704,7 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
                       </div>
                     </div>
 
+                    <div className="space-y-4">
                     <form action={updateStoreOrderAction} className="rounded-2xl border border-white/10 bg-black p-4">
                       <input type="hidden" name="order_id" value={order.id} />
 
@@ -642,6 +808,9 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
                         Guardar cambios
                       </button>
                     </form>
+
+                    <StoreWhatsappActions order={order} />
+                    </div>
                   </div>
 
                   {(order.customer_notes || order.delivery_notes) && (
@@ -667,6 +836,95 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
     </>
   );
 }
+
+
+function StoreWhatsappActions({ order }: { order: StoreOrder }) {
+  const actions = [
+    {
+      key: "order_received",
+      label: "Pedido recibido",
+      description: "Confirma que el pedido quedó registrado.",
+    },
+    {
+      key: "request_payment_proof",
+      label: "Solicitar comprobante",
+      description: "Pide soporte de pago manual.",
+    },
+    {
+      key: "payment_confirmed",
+      label: "Pago confirmado",
+      description: "Informa que el pago fue validado.",
+    },
+    {
+      key: "order_ready",
+      label: "Pedido listo",
+      description: "Coordina entrega o recogida.",
+    },
+    {
+      key: "order_delivered",
+      label: "Pedido entregado",
+      description: "Cierra la entrega con agradecimiento.",
+    },
+    {
+      key: "order_cancelled",
+      label: "Pedido cancelado",
+      description: "Notifica cancelación con tono amable.",
+    },
+  ] as const;
+
+  const hasPhone = !!normalizePhoneForWhatsapp(order.customer_phone);
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black p-4">
+      <p className="text-sm font-medium">Mensajes rápidos por WhatsApp</p>
+      <p className="mt-1 text-xs leading-5 text-white/35">
+        Abre WhatsApp con textos listos. Revisa el mensaje antes de enviarlo.
+      </p>
+
+      {!hasPhone && (
+        <p className="mt-3 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-3 text-xs leading-5 text-yellow-100/80">
+          Este pedido no tiene un WhatsApp válido.
+        </p>
+      )}
+
+      <div className="mt-4 grid gap-2">
+        {actions.map((action) => {
+          const href = buildWhatsappHref(
+            order.customer_phone,
+            buildStoreOrderWhatsappMessage(order, action.key)
+          );
+
+          if (!href) {
+            return (
+              <span
+                key={action.key}
+                className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-white/25"
+              >
+                {action.label}
+              </span>
+            );
+          }
+
+          return (
+            <a
+              key={action.key}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 transition hover:border-white/30 hover:bg-white hover:text-black"
+            >
+              <span className="block text-sm font-medium">{action.label}</span>
+              <span className="mt-1 block text-xs opacity-55">
+                {action.description}
+              </span>
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 
 function StatCard({
   label,
