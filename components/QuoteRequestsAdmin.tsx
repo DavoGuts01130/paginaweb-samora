@@ -9,7 +9,11 @@ export type QuoteStatus =
   | "new"
   | "new_travel_review"
   | "reviewing"
+  | "proposal_sent"
   | "approved"
+  | "reserved"
+  | "completed"
+  | "cancelled"
   | "scheduled"
   | "rejected";
 
@@ -21,6 +25,11 @@ export type MeetingStatus =
   | "cancelada";
 
 export type MeetingType = "por_definir" | "virtual" | "presencial" | "whatsapp";
+
+export type ReservationStatus = "pending_deposit" | "reserved" | "no_deposit_required";
+export type PaymentProvider = "manual" | "wompi";
+export type PaymentStatus = "pending" | "paid" | "failed" | "cancelled" | "refunded" | "not_required";
+export type PaymentMethod = "" | "nequi" | "transferencia" | "efectivo" | "wompi" | "otro";
 
 export type QuoteRequest = {
   id: string;
@@ -79,6 +88,16 @@ export type QuoteRequest = {
   final_price_cop: number | null;
   final_quote_sent_at: string | null;
   final_pdf_url: string | null;
+  reservation_status: ReservationStatus | string | null;
+  deposit_required_cop: number | null;
+  deposit_paid_cop: number | null;
+  payment_method: PaymentMethod | string | null;
+  payment_provider: PaymentProvider | string | null;
+  payment_reference: string | null;
+  payment_status: PaymentStatus | string | null;
+  paid_at: string | null;
+  reservation_confirmed_at: string | null;
+  reservation_notes: string | null;
   source: string | null;
   created_at: string;
   updated_at: string | null;
@@ -177,6 +196,18 @@ type ScheduleValues = {
   schedule_notes: string;
 };
 
+type ReservationValues = {
+  reservation_status: ReservationStatus;
+  deposit_required_cop: string;
+  deposit_paid_cop: string;
+  payment_method: PaymentMethod;
+  payment_provider: PaymentProvider;
+  payment_reference: string;
+  payment_status: PaymentStatus;
+  paid_at: string;
+  reservation_notes: string;
+};
+
 const quoteRules: Record<ServiceKey, QuoteRule> = {
   matrimonio_boda: { label: "Matrimonio / boda", min: 1250000, max: 1800000, perHourMin: 90000, perHourMax: 160000 },
   quince_anos: { label: "Quince años", min: 650000, max: 1800000, perHourMin: 90000, perHourMax: 160000 },
@@ -215,16 +246,22 @@ const statusOptions: { value: QuoteStatus; label: string }[] = [
   { value: "new", label: "Nueva" },
   { value: "new_travel_review", label: "Revisión desplazamiento" },
   { value: "reviewing", label: "En revisión" },
+  { value: "proposal_sent", label: "Propuesta enviada" },
   { value: "approved", label: "Aprobada" },
-  { value: "scheduled", label: "Agendada" },
-  { value: "rejected", label: "Rechazada" },
+  { value: "reserved", label: "Reservada" },
+  { value: "completed", label: "Finalizada" },
+  { value: "cancelled", label: "Cancelada" },
 ];
 
 const statusLabels: Record<string, string> = {
   new: "Nueva",
   new_travel_review: "Revisión desplazamiento",
   reviewing: "En revisión",
+  proposal_sent: "Propuesta enviada",
   approved: "Aprobada",
+  reserved: "Reservada",
+  completed: "Finalizada",
+  cancelled: "Cancelada",
   scheduled: "Agendada",
   rejected: "Rechazada",
 };
@@ -242,6 +279,35 @@ const meetingTypeLabels: Record<string, string> = {
   virtual: "Virtual",
   presencial: "Presencial",
   whatsapp: "WhatsApp",
+};
+
+const reservationStatusLabels: Record<string, string> = {
+  pending_deposit: "Pendiente de abono",
+  reserved: "Reservada",
+  no_deposit_required: "Sin abono requerido",
+};
+
+const paymentProviderLabels: Record<string, string> = {
+  manual: "Manual",
+  wompi: "Wompi",
+};
+
+const paymentMethodLabels: Record<string, string> = {
+  "": "Por definir",
+  nequi: "Nequi",
+  transferencia: "Transferencia",
+  efectivo: "Efectivo",
+  wompi: "Wompi",
+  otro: "Otro",
+};
+
+const paymentStatusLabels: Record<string, string> = {
+  pending: "Pendiente",
+  paid: "Pagado",
+  failed: "Fallido",
+  cancelled: "Cancelado",
+  refunded: "Reembolsado",
+  not_required: "No requerido",
 };
 
 const serviceOptions = Object.entries(quoteRules).map(([value, rule]) => ({ value: value as ServiceKey, label: rule.label }));
@@ -326,6 +392,34 @@ function toMeetingStatus(value: string | null | undefined): MeetingStatus {
   return "pendiente_programar";
 }
 
+function toReservationStatus(value: string | null | undefined): ReservationStatus {
+  if (value === "reserved" || value === "no_deposit_required") return value;
+  return "pending_deposit";
+}
+
+function toPaymentProvider(value: string | null | undefined): PaymentProvider {
+  return value === "wompi" ? "wompi" : "manual";
+}
+
+function toPaymentStatus(value: string | null | undefined): PaymentStatus {
+  if (value === "paid" || value === "failed" || value === "cancelled" || value === "refunded" || value === "not_required") return value;
+  return "pending";
+}
+
+function toPaymentMethod(value: string | null | undefined): PaymentMethod {
+  if (value === "nequi" || value === "transferencia" || value === "efectivo" || value === "wompi" || value === "otro") return value;
+  return "";
+}
+
+function toDatetimeLocalValue(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60 * 1000);
+  return localDate.toISOString().slice(0, 16);
+}
+
 function getDurationFromQuote(quote: QuoteRequest) {
   const totalMinutes = Number(quote.duration_value ?? 0);
   if (quote.duration_unit === "minutos_totales" && totalMinutes > 0) {
@@ -386,6 +480,20 @@ function createScheduleValues(quote: QuoteRequest): ScheduleValues {
     confirmed_timezone: quote.confirmed_timezone ?? "America/Bogota",
     confirmed_location: quote.confirmed_location ?? quote.service_location ?? "",
     schedule_notes: quote.schedule_notes ?? "",
+  };
+}
+
+function createReservationValues(quote: QuoteRequest): ReservationValues {
+  return {
+    reservation_status: toReservationStatus(quote.reservation_status),
+    deposit_required_cop: quote.deposit_required_cop ? String(quote.deposit_required_cop) : "",
+    deposit_paid_cop: quote.deposit_paid_cop ? String(quote.deposit_paid_cop) : "",
+    payment_method: toPaymentMethod(quote.payment_method),
+    payment_provider: toPaymentProvider(quote.payment_provider),
+    payment_reference: quote.payment_reference ?? "",
+    payment_status: toPaymentStatus(quote.payment_status),
+    paid_at: toDatetimeLocalValue(quote.paid_at),
+    reservation_notes: quote.reservation_notes ?? "",
   };
 }
 
@@ -691,6 +799,7 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
   const [editValues, setEditValues] = useState<EditValues | null>(initialQuotes[0] ? createEditValues(initialQuotes[0]) : null);
   const [meetingValues, setMeetingValues] = useState<MeetingValues | null>(initialQuotes[0] ? createMeetingValues(initialQuotes[0]) : null);
   const [scheduleValues, setScheduleValues] = useState<ScheduleValues | null>(initialQuotes[0] ? createScheduleValues(initialQuotes[0]) : null);
+  const [reservationValues, setReservationValues] = useState<ReservationValues | null>(initialQuotes[0] ? createReservationValues(initialQuotes[0]) : null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState("");
@@ -699,10 +808,10 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
   const stats = useMemo(() => {
     const total = quotes.length;
     const news = quotes.filter((quote) => quote.status === "new" || quote.status === "new_travel_review").length;
-    const meetingPending = quotes.filter((quote) => (quote.meeting_status ?? "pendiente_programar") === "pendiente_programar").length;
-    const meetingScheduled = quotes.filter((quote) => quote.meeting_status === "programada").length;
-    const finalReady = quotes.filter((quote) => Number(quote.final_price_cop ?? 0) > 0).length;
-    return { total, news, meetingPending, meetingScheduled, finalReady };
+    const proposalSent = quotes.filter((quote) => quote.status === "proposal_sent").length;
+    const approved = quotes.filter((quote) => quote.status === "approved").length;
+    const reserved = quotes.filter((quote) => quote.status === "reserved" || quote.reservation_status === "reserved").length;
+    return { total, news, proposalSent, approved, reserved };
   }, [quotes]);
 
   const filteredQuotes = useMemo(() => {
@@ -726,6 +835,7 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
     setEditValues(createEditValues(quote));
     setMeetingValues(createMeetingValues(quote));
     setScheduleValues(createScheduleValues(quote));
+    setReservationValues(createReservationValues(quote));
     setEditMode(false);
     setMessage("");
   }
@@ -736,6 +846,7 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
     setEditValues(createEditValues(updatedQuote));
     setMeetingValues(createMeetingValues(updatedQuote));
     setScheduleValues(createScheduleValues(updatedQuote));
+    setReservationValues(createReservationValues(updatedQuote));
   }
 
   async function updateStatus(quote: QuoteRequest, newStatus: QuoteStatus) {
@@ -744,6 +855,11 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
     const now = new Date().toISOString();
     const payload: Record<string, unknown> = { status: newStatus, updated_at: now };
     if (newStatus === "approved") payload.approved_at = quote.approved_at ?? now;
+    if (newStatus === "proposal_sent") payload.final_quote_sent_at = quote.final_quote_sent_at ?? now;
+    if (newStatus === "reserved") {
+      payload.reservation_status = "reserved";
+      payload.reservation_confirmed_at = quote.reservation_confirmed_at ?? now;
+    }
     if (newStatus === "scheduled") payload.scheduled_at = quote.scheduled_at ?? now;
 
     const { error } = await supabase.from("quote_requests").update(payload).eq("id", quote.id);
@@ -899,6 +1015,65 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
     setMessage("Mensaje interno copiado.");
   }
 
+
+  async function saveReservation({ confirm = false }: { confirm?: boolean } = {}) {
+    if (!selectedQuote || !reservationValues) return;
+
+    setSavingId(selectedQuote.id);
+    setMessage("");
+
+    const now = new Date().toISOString();
+    const depositRequired = parseCOPInput(reservationValues.deposit_required_cop);
+    const depositPaid = parseCOPInput(reservationValues.deposit_paid_cop);
+    const reservationStatus = confirm
+      ? reservationValues.reservation_status === "no_deposit_required"
+        ? "no_deposit_required"
+        : "reserved"
+      : reservationValues.reservation_status;
+    const paymentStatus = reservationStatus === "no_deposit_required"
+      ? "not_required"
+      : confirm && depositPaid > 0
+      ? "paid"
+      : reservationValues.payment_status;
+    const paidAt = reservationValues.paid_at
+      ? new Date(reservationValues.paid_at).toISOString()
+      : paymentStatus === "paid" && depositPaid > 0
+      ? selectedQuote.paid_at ?? now
+      : null;
+
+    const payload: Record<string, unknown> = {
+      reservation_status: reservationStatus,
+      deposit_required_cop: depositRequired || null,
+      deposit_paid_cop: depositPaid || null,
+      payment_method: reservationValues.payment_method || null,
+      payment_provider: reservationValues.payment_provider || "manual",
+      payment_reference: reservationValues.payment_reference || null,
+      payment_status: paymentStatus,
+      paid_at: paidAt,
+      reservation_notes: reservationValues.reservation_notes || null,
+      updated_at: now,
+    };
+
+    if (confirm) {
+      payload.status = "reserved";
+      payload.reservation_confirmed_at = selectedQuote.reservation_confirmed_at ?? now;
+    } else {
+      payload.reservation_confirmed_at = selectedQuote.reservation_confirmed_at;
+    }
+
+    const { error } = await supabase.from("quote_requests").update(payload).eq("id", selectedQuote.id);
+
+    if (error) {
+      setMessage(`No se pudo guardar la reserva: ${error.message}`);
+      setSavingId("");
+      return;
+    }
+
+    updateLocalQuote({ ...selectedQuote, ...payload } as QuoteRequest);
+    setMessage(confirm ? "Reserva confirmada correctamente." : "Reserva guardada correctamente.");
+    setSavingId("");
+  }
+
   function openClientMeetingWhatsapp(quote: QuoteRequest, currentMeetingValues?: MeetingValues) {
     const phone = normalizePhoneForWhatsapp(quote.customer_phone);
 
@@ -938,7 +1113,7 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
     window.open(link, "_blank", "noopener,noreferrer");
   }
 
-  function openClientFinalQuoteWhatsapp(quote: QuoteRequest) {
+  async function openClientFinalQuoteWhatsapp(quote: QuoteRequest) {
     const phone = normalizePhoneForWhatsapp(quote.customer_phone);
 
     if (!phone) {
@@ -957,6 +1132,24 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
 
     window.open(link, "_blank", "noopener,noreferrer");
 
+    const now = new Date().toISOString();
+    const statusAfterSend = ["reserved", "completed", "cancelled"].includes(String(quote.status))
+      ? quote.status
+      : "proposal_sent";
+    const payload: Record<string, unknown> = {
+      status: statusAfterSend,
+      final_quote_sent_at: quote.final_quote_sent_at ?? now,
+      updated_at: now,
+    };
+
+    const { error } = await supabase.from("quote_requests").update(payload).eq("id", quote.id);
+
+    if (error) {
+      setMessage(`WhatsApp abierto, pero no se pudo marcar la propuesta como enviada: ${error.message}`);
+      return;
+    }
+
+    updateLocalQuote({ ...quote, ...payload } as QuoteRequest);
     setMessage(
       "WhatsApp abierto. Recuerda adjuntar manualmente el PDF de la propuesta antes de enviarlo al cliente."
     );
@@ -967,9 +1160,9 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
       <div className="grid gap-4 md:grid-cols-5">
         <StatCard label="Total" value={stats.total} />
         <StatCard label="Nuevas" value={stats.news} />
-        <StatCard label="Reunión pendiente" value={stats.meetingPending} />
-        <StatCard label="Reunión programada" value={stats.meetingScheduled} />
-        <StatCard label="Valor final" value={stats.finalReady} />
+        <StatCard label="Propuestas" value={stats.proposalSent} />
+        <StatCard label="Aprobadas" value={stats.approved} />
+        <StatCard label="Reservadas" value={stats.reserved} />
       </div>
 
       <div className="mt-8 grid gap-4 lg:grid-cols-[0.75fr_1.25fr]">
@@ -1007,6 +1200,7 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
                     <p className="mt-3 text-sm opacity-65">{quote.service_label}</p>
                     <p className="mt-2 text-xs opacity-55">Reunión: {meetingStatusLabels[quote.meeting_status ?? "pendiente_programar"] ?? "Pendiente"}</p>
                     {quote.final_price_cop ? <p className="mt-2 text-sm font-medium">Final: {formatCOP(quote.final_price_cop)}</p> : <p className="mt-2 text-sm opacity-50">Sin valor final</p>}
+                    <p className="mt-2 text-xs opacity-55">Reserva: {reservationStatusLabels[quote.reservation_status ?? "pending_deposit"] ?? "Pendiente de abono"}</p>
                     {quote.requires_travel_review && <p className={`mt-3 rounded-xl border px-3 py-2 text-xs ${active ? "border-yellow-500/30 bg-yellow-100 text-yellow-900" : "border-yellow-400/20 bg-yellow-400/10 text-yellow-100/80"}`}>Requiere revisión por desplazamiento</p>}
                   </button>
                 );
@@ -1016,22 +1210,25 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
         </div>
 
         <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-          {selectedQuote && editValues && meetingValues && scheduleValues ? (
+          {selectedQuote && editValues && meetingValues && scheduleValues && reservationValues ? (
             <QuoteDetail
               quote={selectedQuote}
               editMode={editMode}
               editValues={editValues}
               meetingValues={meetingValues}
               scheduleValues={scheduleValues}
+              reservationValues={reservationValues}
               saving={savingId === selectedQuote.id}
               onEditValuesChange={setEditValues}
               onMeetingValuesChange={setMeetingValues}
               onScheduleValuesChange={setScheduleValues}
+              onReservationValuesChange={setReservationValues}
               onToggleEdit={() => setEditMode((current) => !current)}
               onCancelEdit={() => { setEditValues(createEditValues(selectedQuote)); setEditMode(false); }}
               onSaveChanges={saveQuoteChanges}
               onSaveMeeting={saveMeeting}
               onSaveSchedule={saveSchedule}
+              onSaveReservation={saveReservation}
               onUpdateStatus={updateStatus}
               onCopyWhatsappMessage={copyWhatsappMessage}
               onOpenClientMeetingWhatsapp={openClientMeetingWhatsapp}
@@ -1092,15 +1289,18 @@ function QuoteDetail({
   editValues,
   meetingValues,
   scheduleValues,
+  reservationValues,
   saving,
   onEditValuesChange,
   onMeetingValuesChange,
   onScheduleValuesChange,
+  onReservationValuesChange,
   onToggleEdit,
   onCancelEdit,
   onSaveChanges,
   onSaveMeeting,
   onSaveSchedule,
+  onSaveReservation,
   onUpdateStatus,
   onCopyWhatsappMessage,
   onOpenClientMeetingWhatsapp,
@@ -1111,15 +1311,18 @@ function QuoteDetail({
   editValues: EditValues;
   meetingValues: MeetingValues;
   scheduleValues: ScheduleValues;
+  reservationValues: ReservationValues;
   saving: boolean;
   onEditValuesChange: (values: EditValues) => void;
   onMeetingValuesChange: (values: MeetingValues) => void;
   onScheduleValuesChange: (values: ScheduleValues) => void;
+  onReservationValuesChange: (values: ReservationValues) => void;
   onToggleEdit: () => void;
   onCancelEdit: () => void;
   onSaveChanges: (event: FormEvent<HTMLFormElement>) => void;
   onSaveMeeting: (options?: { markDone?: boolean }) => void;
   onSaveSchedule: (options?: { approve?: boolean }) => void;
+  onSaveReservation: (options?: { confirm?: boolean }) => void;
   onUpdateStatus: (quote: QuoteRequest, status: QuoteStatus) => void;
   onCopyWhatsappMessage: (quote: QuoteRequest) => void;
   onOpenClientMeetingWhatsapp: (quote: QuoteRequest, meetingValues?: MeetingValues) => void;
@@ -1154,6 +1357,17 @@ function QuoteDetail({
       />
 
       <SchedulePanel values={scheduleValues} quote={quote} saving={saving} onChange={onScheduleValuesChange} onSave={() => onSaveSchedule()} onSaveAndApprove={() => onSaveSchedule({ approve: true })} />
+
+      <ReservationPanel
+        values={reservationValues}
+        quote={quote}
+        saving={saving}
+        onChange={onReservationValuesChange}
+        onSave={() => onSaveReservation()}
+        onConfirm={() => onSaveReservation({ confirm: true })}
+        onComplete={() => onUpdateStatus(quote, "completed")}
+        onCancel={() => onUpdateStatus(quote, "cancelled")}
+      />
 
       <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-5">
         <p className="text-xs uppercase tracking-[0.25em] text-white/35">Estado de la solicitud</p>
@@ -1245,6 +1459,8 @@ function QuoteReadView({ quote }: { quote: QuoteRequest }) {
         <Info label="Invitados" value={quote.guest_count ? String(quote.guest_count) : "No indicado"} />
         <Info label="Referencia interna" value={getInternalReferenceLabel(quote)} />
         <Info label="Valor final" value={quote.final_price_cop ? formatCOP(quote.final_price_cop) : "Sin definir"} />
+        <Info label="Reserva" value={reservationStatusLabels[quote.reservation_status ?? "pending_deposit"] ?? "Pendiente de abono"} />
+        <Info label="Abono" value={`${formatCOP(quote.deposit_paid_cop)} / ${formatCOP(quote.deposit_required_cop)}`} />
       </div>
 
       <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-5">
@@ -1407,6 +1623,118 @@ function SchedulePanel({ values, quote, saving, onChange, onSave, onSaveAndAppro
   );
 }
 
+
+function ReservationPanel({ values, quote, saving, onChange, onSave, onConfirm, onComplete, onCancel }: { values: ReservationValues; quote: QuoteRequest; saving: boolean; onChange: (values: ReservationValues) => void; onSave: () => void; onConfirm: () => void; onComplete: () => void; onCancel: () => void }) {
+  function updateField<Key extends keyof ReservationValues>(key: Key, value: ReservationValues[Key]) {
+    onChange({ ...values, [key]: value });
+  }
+
+  const remainingDeposit = Math.max(parseCOPInput(values.deposit_required_cop) - parseCOPInput(values.deposit_paid_cop), 0);
+
+  return (
+    <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-white/35">Reserva y abono</p>
+          <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em]">Pago de reserva del servicio</h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/40">
+            Registra el abono manual por Nequi, transferencia, efectivo u otro método. La estructura queda lista para conectar Wompi más adelante.
+          </p>
+        </div>
+
+        <ReservationBadge status={values.reservation_status} />
+      </div>
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <EditField label="Estado de reserva">
+          <select value={values.reservation_status} onChange={(event) => updateField("reservation_status", event.target.value as ReservationStatus)} className="admin-input admin-select">
+            <option value="pending_deposit">Pendiente de abono</option>
+            <option value="reserved">Reservada</option>
+            <option value="no_deposit_required">Sin abono requerido</option>
+          </select>
+        </EditField>
+
+        <EditField label="Proveedor de pago">
+          <select value={values.payment_provider} onChange={(event) => updateField("payment_provider", event.target.value as PaymentProvider)} className="admin-input admin-select">
+            <option value="manual">Manual</option>
+            <option value="wompi">Wompi futuro</option>
+          </select>
+        </EditField>
+
+        <EditField label="Abono requerido">
+          <input type="number" min="0" step="1000" value={values.deposit_required_cop} onChange={(event) => updateField("deposit_required_cop", event.target.value)} placeholder="Ej: 300000" className="admin-input" />
+        </EditField>
+
+        <EditField label="Valor abonado">
+          <input type="number" min="0" step="1000" value={values.deposit_paid_cop} onChange={(event) => updateField("deposit_paid_cop", event.target.value)} placeholder="Ej: 300000" className="admin-input" />
+        </EditField>
+
+        <EditField label="Método de pago">
+          <select value={values.payment_method} onChange={(event) => updateField("payment_method", event.target.value as PaymentMethod)} className="admin-input admin-select">
+            <option value="">Por definir</option>
+            <option value="nequi">Nequi</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="efectivo">Efectivo</option>
+            <option value="wompi">Wompi</option>
+            <option value="otro">Otro</option>
+          </select>
+        </EditField>
+
+        <EditField label="Estado del pago">
+          <select value={values.payment_status} onChange={(event) => updateField("payment_status", event.target.value as PaymentStatus)} className="admin-input admin-select">
+            <option value="pending">Pendiente</option>
+            <option value="paid">Pagado</option>
+            <option value="failed">Fallido</option>
+            <option value="cancelled">Cancelado</option>
+            <option value="refunded">Reembolsado</option>
+            <option value="not_required">No requerido</option>
+          </select>
+        </EditField>
+
+        <EditField label="Fecha de pago">
+          <input type="datetime-local" value={values.paid_at} onChange={(event) => updateField("paid_at", event.target.value)} className="admin-input" />
+        </EditField>
+
+        <EditField label="Referencia / comprobante">
+          <input value={values.payment_reference} onChange={(event) => updateField("payment_reference", event.target.value)} placeholder="Número de comprobante, transacción o nota" className="admin-input" />
+        </EditField>
+      </div>
+
+      <EditField label="Notas de reserva" full className="mt-5 block">
+        <textarea value={values.reservation_notes} onChange={(event) => updateField("reservation_notes", event.target.value)} rows={3} placeholder="Ej: abono recibido, confirmar comprobante, pendiente saldo final..." className="admin-input resize-none" />
+      </EditField>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <Info label="Valor final" value={quote.final_price_cop ? formatCOP(quote.final_price_cop) : "Sin valor final"} />
+        <Info label="Abono pendiente" value={formatCOP(remainingDeposit)} />
+        <Info label="Pago" value={`${paymentProviderLabels[values.payment_provider]} · ${paymentStatusLabels[values.payment_status]}`} />
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <button type="button" disabled={saving} onClick={onSave} className="rounded-full border border-white/15 px-5 py-3 text-sm text-white/70 transition hover:border-white/35 hover:text-white disabled:cursor-not-allowed disabled:opacity-60">
+          {saving ? "Guardando..." : "Guardar reserva"}
+        </button>
+
+        <button type="button" disabled={saving} onClick={onConfirm} className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60">
+          {saving ? "Guardando..." : "Confirmar reserva"}
+        </button>
+
+        <button type="button" disabled={saving} onClick={onComplete} className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-5 py-3 text-sm text-emerald-100/80 transition hover:border-emerald-300/45 disabled:cursor-not-allowed disabled:opacity-60">
+          Finalizar servicio
+        </button>
+
+        <button type="button" disabled={saving} onClick={onCancel} className="rounded-full border border-red-400/25 bg-red-400/10 px-5 py-3 text-sm text-red-100/80 transition hover:border-red-300/45 disabled:cursor-not-allowed disabled:opacity-60">
+          Cancelar solicitud
+        </button>
+      </div>
+
+      <p className="mt-3 text-xs leading-5 text-white/35">
+        Cuando se integre Wompi, este mismo bloque podrá guardar la referencia de transacción y actualizar el estado de pago automáticamente.
+      </p>
+    </div>
+  );
+}
+
 function QuoteEditForm({ values, saving, onChange, onCancel, onSubmit }: { values: EditValues; saving: boolean; onChange: (values: EditValues) => void; onCancel: () => void; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
   const estimate = getEstimateFromValues(values);
   const selectedZone = serviceZones[values.service_zone];
@@ -1486,16 +1814,32 @@ function ToggleEdit({ label, active, onClick }: { label: string; active: boolean
 function StatusBadge({ status }: { status: string }) {
   const label = statusLabels[status] ?? status;
   const className =
-    status === "approved"
+    status === "reserved"
+      ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-100/80"
+      : status === "approved"
       ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100/80"
-      : status === "scheduled"
+      : status === "proposal_sent"
       ? "border-blue-400/20 bg-blue-400/10 text-blue-100/80"
-      : status === "rejected"
+      : status === "completed"
+      ? "border-violet-400/20 bg-violet-400/10 text-violet-100/80"
+      : status === "cancelled" || status === "rejected"
       ? "border-red-400/20 bg-red-400/10 text-red-100/80"
       : status === "new_travel_review"
       ? "border-yellow-400/20 bg-yellow-400/10 text-yellow-100/80"
       : status === "reviewing"
       ? "border-white/15 bg-white/[0.06] text-white/70"
       : "border-white/10 bg-white/[0.03] text-white/55";
+  return <span className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs ${className}`}>{label}</span>;
+}
+
+function ReservationBadge({ status }: { status: string }) {
+  const label = reservationStatusLabels[status] ?? status;
+  const className =
+    status === "reserved"
+      ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-100/80"
+      : status === "no_deposit_required"
+      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100/80"
+      : "border-yellow-400/20 bg-yellow-400/10 text-yellow-100/80";
+
   return <span className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs ${className}`}>{label}</span>;
 }

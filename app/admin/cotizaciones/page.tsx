@@ -91,6 +91,16 @@ export default async function AdminCotizacionesPage() {
       final_price_cop,
       final_quote_sent_at,
       final_pdf_url,
+      reservation_status,
+      deposit_required_cop,
+      deposit_paid_cop,
+      payment_method,
+      payment_provider,
+      payment_reference,
+      payment_status,
+      paid_at,
+      reservation_confirmed_at,
+      reservation_notes,
       source,
       created_at,
       updated_at
@@ -117,7 +127,7 @@ export default async function AdminCotizacionesPage() {
 
               <p className="mt-4 max-w-2xl text-sm leading-7 text-white/50 sm:text-base">
                 Revisa solicitudes, coordina reuniones, ajusta valores finales,
-                prepara PDFs y deja lista la agenda cuando el cliente apruebe.
+                prepara PDFs, registra abonos y confirma reservas cuando el cliente apruebe.
               </p>
             </div>
 
@@ -133,8 +143,8 @@ export default async function AdminCotizacionesPage() {
             <div className="rounded-[2rem] border border-red-400/20 bg-red-400/10 p-6 text-sm leading-6 text-red-100/80">
               No se pudieron cargar las cotizaciones. Revisa que la tabla{" "}
               <span className="font-semibold">quote_requests</span> tenga las
-              columnas nuevas para reunión, correo, documento, invitados y valor
-              final.
+              columnas nuevas para reunión, correo, documento, invitados, valor
+              final, reserva y pagos.
               <br />
               <span className="mt-2 block text-red-100/60">
                 Error: {error.message}
