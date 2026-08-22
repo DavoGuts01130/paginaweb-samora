@@ -24,11 +24,14 @@ const whatsappPhone = "+57 313 842 9568";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+
   title: {
     default: siteTitle,
     template: `%s | ${siteName}`,
   },
+
   description: siteDescription,
+
   keywords: [
     "Samora Estudio",
     "Samora Estudio Creativo",
@@ -42,22 +45,26 @@ export const metadata: Metadata = {
     "recuerdos impresos",
     "portafolio fotográfico",
   ],
+
   authors: [{ name: siteName }],
   creator: siteName,
   publisher: siteName,
+
   robots: {
     index: true,
     follow: true,
   },
+
   icons: {
     icon: [
       {
-        url: "/favicon.ico",
+        url: "/favicon.ico?v=3",
         sizes: "any",
       },
     ],
-    shortcut: ["/favicon.ico"],
+    shortcut: ["/favicon.ico?v=3"],
   },
+
   openGraph: {
     type: "website",
     locale: "es_CO",
@@ -67,18 +74,19 @@ export const metadata: Metadata = {
     description: siteDescription,
     images: [
       {
-        url: "/og-image.jpg",
+        url: "/og-image.jpg?v=5",
         width: 1200,
         height: 630,
         alt: "Samora Estudio Creativo - Fotografía profesional",
       },
     ],
   },
+
   twitter: {
     card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
-    images: ["/og-image.jpg"],
+    images: ["/og-image.jpg?v=5"],
   },
 };
 

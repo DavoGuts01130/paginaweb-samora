@@ -171,7 +171,7 @@ export default function NosotrosPage() {
                     <OwnerCard
                       image={OWNER_JILLY_IMAGE}
                       role="Fotógrafo"
-                      name="Jilly"
+                      name="Jillywerth Cuesta Barrera"
                       imageStyle={{
                         objectPosition: "center center",
                       }}
@@ -180,7 +180,7 @@ export default function NosotrosPage() {
                     <OwnerCard
                       image={OWNER_SAMANTHA_IMAGE}
                       role="Fotógrafa"
-                      name="Samantha"
+                      name="Samantha Mora Barahona"
                       portraitMode
                     />
                   </div>
@@ -403,7 +403,7 @@ function OwnerCard({
               alt={`${name}, ${role.toLowerCase()} de Samora Estudio`}
               className="relative z-10 mx-auto h-full w-full object-contain transition duration-500 group-hover:scale-[1.03]"
               style={{
-                transform: "translateY(-32px) scale(1.1)",
+                transform: "translateY(-22px) scale(1.08)",
                 ...imageStyle,
               }}
             />
@@ -423,7 +423,7 @@ function OwnerCard({
           {role}
         </p>
 
-        <h3 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-white">
+        <h3 className="mt-1 text-xl font-semibold leading-tight tracking-[-0.04em] text-white sm:text-2xl">
           {name}
         </h3>
       </div>
