@@ -766,6 +766,8 @@ export default function AdminDashboardView({
                 <QuickAccessCard key={item.title} {...item} />
               ))}
             </div>
+
+            <AnalyticsAccess />
           </Panel>
         </div>
       </section>
@@ -894,6 +896,36 @@ function QuickAccessCard({
 
       <span className="mt-4 inline-block text-sm text-white/70 transition group-hover:text-white">
         Entrar →
+      </span>
+    </Link>
+  );
+}
+
+function AnalyticsAccess() {
+  return (
+    <Link
+      href="/admin/analitica"
+      className="group mt-4 flex flex-col gap-3 rounded-[1.35rem] border border-white/10 bg-black/35 p-4 transition hover:border-white/25 hover:bg-white/[0.04] sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[0.65rem] uppercase tracking-[0.24em] text-white/35">
+            Métricas
+          </span>
+
+          <span className="text-sm font-medium text-white">
+            Analítica web
+          </span>
+        </div>
+
+        <p className="mt-2 text-sm leading-6 text-white/45">
+          Revisa visitas, páginas más consultadas y acciones importantes del
+          sitio.
+        </p>
+      </div>
+
+      <span className="shrink-0 text-sm font-medium text-white/60 transition group-hover:text-white">
+        Ver analítica →
       </span>
     </Link>
   );

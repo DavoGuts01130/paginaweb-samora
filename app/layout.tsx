@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { CartProvider } from "@/components/CartProvider";
+import SiteTracker from "@/components/SiteTracker";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +14,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://samoraestudiocreativo.com";
+const siteUrl = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://samoraestudiocreativo.com"
+).replace(/\/$/, "");
 
 const siteName = "Samora Estudio";
 const siteTitle = "Samora Estudio | Fotografía profesional";
@@ -150,6 +152,8 @@ export default function RootLayout({
             __html: JSON.stringify(structuredData),
           }}
         />
+
+        <SiteTracker />
 
         <CartProvider>{children}</CartProvider>
       </body>
