@@ -14,61 +14,71 @@ const geistMono = Geist_Mono({
 });
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://samora.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://samoraestudiocreativo.com";
+
+const siteName = "Samora Estudio";
+const siteTitle = "Samora Estudio | Fotografía profesional";
+const siteDescription =
+  "Fotografía profesional para retratos, eventos, productos y recuerdos impresos con un estilo elegante, auténtico y atemporal.";
+const whatsappPhone = "+57 313 842 9568";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Samora Studio | Fotografía profesional",
-    template: "%s | Samora Studio",
+    default: siteTitle,
+    template: `%s | ${siteName}`,
   },
-  description:
-    "Samora Studio ofrece fotografía profesional para retratos, eventos, productos y recuerdos impresos con una estética elegante, auténtica y atemporal.",
+  description: siteDescription,
   keywords: [
-    "Samora Studio",
+    "Samora Estudio",
+    "Samora Estudio Creativo",
     "fotografía profesional",
     "fotógrafo",
     "fotografía de retrato",
     "fotografía de eventos",
     "fotografía de producto",
+    "fotografía gastronómica",
     "fotografía en Colombia",
     "recuerdos impresos",
     "portafolio fotográfico",
   ],
-  authors: [{ name: "Samora Studio" }],
-  creator: "Samora Studio",
-  publisher: "Samora Studio",
+  authors: [{ name: siteName }],
+  creator: siteName,
+  publisher: siteName,
   robots: {
     index: true,
     follow: true,
+  },
+  icons: {
+    icon: [
+      {
+        url: "/favicon.ico",
+        sizes: "any",
+      },
+    ],
+    shortcut: ["/favicon.ico"],
   },
   openGraph: {
     type: "website",
     locale: "es_CO",
     url: siteUrl,
-    siteName: "Samora Studio",
-    title: "Samora Studio | Fotografía profesional",
-    description:
-      "Fotografía profesional para retratos, eventos, productos y recuerdos impresos con un estilo elegante y auténtico.",
+    siteName,
+    title: siteTitle,
+    description: siteDescription,
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Samora Studio - Fotografía profesional",
+        alt: "Samora Estudio Creativo - Fotografía profesional",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Samora Studio | Fotografía profesional",
-    description:
-      "Fotografía profesional para retratos, eventos, productos y recuerdos impresos.",
+    title: siteTitle,
+    description: siteDescription,
     images: ["/og-image.jpg"],
-  },
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
   },
 };
 
@@ -76,29 +86,38 @@ const structuredData = {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
   "@id": `${siteUrl}/#organization`,
-  name: "Samora Studio",
-  description:
-    "Fotografía profesional para retratos, eventos, productos y recuerdos impresos.",
+  name: siteName,
+  alternateName: "Samora Estudio Creativo",
+  description: siteDescription,
   url: siteUrl,
   image: `${siteUrl}/og-image.jpg`,
-  logo: `${siteUrl}/apple-touch-icon.png`,
-  telephone: "+57 319 270 9536",
+  logo: `${siteUrl}/favicon.ico`,
+  telephone: whatsappPhone,
   priceRange: "$$",
   address: {
     "@type": "PostalAddress",
+    addressLocality: "Guatavita",
+    addressRegion: "Cundinamarca",
     addressCountry: "CO",
   },
-  areaServed: {
-    "@type": "Country",
-    name: "Colombia",
-  },
-  sameAs: [
-    "https://instagram.com/samora.studio",
+  areaServed: [
+    {
+      "@type": "Country",
+      name: "Colombia",
+    },
+    {
+      "@type": "AdministrativeArea",
+      name: "Cundinamarca",
+    },
+    {
+      "@type": "City",
+      name: "Bogotá",
+    },
   ],
   contactPoint: [
     {
       "@type": "ContactPoint",
-      telephone: "+57 319 270 9536",
+      telephone: whatsappPhone,
       contactType: "customer service",
       areaServed: "CO",
       availableLanguage: ["Spanish"],
