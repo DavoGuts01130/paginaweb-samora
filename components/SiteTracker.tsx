@@ -31,9 +31,27 @@ const VISITOR_KEY = "samora_visitor_id";
 const SESSION_KEY = "samora_session_id";
 const SESSION_UPDATED_KEY = "samora_session_updated_at";
 const LAST_PAGE_VIEW_KEY = "samora_last_page_view";
+const LAST_CONTEXT_EVENT_KEY = "samora_last_context_event";
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const DUPLICATE_PAGE_VIEW_MS = 1500;
+const DUPLICATE_CONTEXT_EVENT_MS = 1500;
+
+const allowedEventTypes = new Set<SiteEventType>([
+  "page_view",
+  "quote_click",
+  "whatsapp_click",
+  "cart_click",
+  "checkout_start",
+  "order_created",
+  "tracking_search",
+  "portfolio_view",
+  "product_view",
+  "service_view",
+  "reservation_view",
+  "admin_view",
+  "other",
+]);
 
 function createId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -141,6 +159,32 @@ function getPageGroup(path: string) {
   return "otro";
 }
 
+function getContextEventFromPath(path: string): SiteEventType | null {
+  if (shouldIgnorePath(path)) return null;
+
+  if (path.startsWith("/servicios")) {
+    return "service_view";
+  }
+
+  if (path.startsWith("/portafolio")) {
+    return "portfolio_view";
+  }
+
+  if (path.startsWith("/tienda/")) {
+    return "product_view";
+  }
+
+  if (path.startsWith("/carrito")) {
+    return "cart_click";
+  }
+
+  if (path.startsWith("/checkout")) {
+    return "checkout_start";
+  }
+
+  return null;
+}
+
 function wasRecentlyTracked(path: string) {
   try {
     const raw = sessionStorage.getItem(LAST_PAGE_VIEW_KEY);
@@ -176,13 +220,131 @@ function markPageTracked(path: string) {
   }
 }
 
+function wasRecentlyTrackedContextEvent(eventType: SiteEventType, path: string) {
+  try {
+    const raw = sessionStorage.getItem(LAST_CONTEXT_EVENT_KEY);
+
+    if (!raw) return false;
+
+    const parsed = JSON.parse(raw) as {
+      eventType?: SiteEventType;
+      path?: string;
+      time?: number;
+    };
+
+    return (
+      parsed.eventType === eventType &&
+      parsed.path === path &&
+      typeof parsed.time === "number" &&
+      Date.now() - parsed.time < DUPLICATE_CONTEXT_EVENT_MS
+    );
+  } catch {
+    return false;
+  }
+}
+
+function markContextEventTracked(eventType: SiteEventType, path: string) {
+  try {
+    sessionStorage.setItem(
+      LAST_CONTEXT_EVENT_KEY,
+      JSON.stringify({
+        eventType,
+        path,
+        time: Date.now(),
+      })
+    );
+  } catch {
+    // No pasa nada si sessionStorage no está disponible.
+  }
+}
+
+function normalizeText(value: string | null | undefined, maxLength = 160) {
+  if (!value) return null;
+
+  const cleaned = value.replace(/\s+/g, " ").trim();
+
+  if (!cleaned) return null;
+
+  return cleaned.slice(0, maxLength);
+}
+
+function getPathFromHref(href: string) {
+  try {
+    const url = new URL(href, window.location.origin);
+
+    if (url.origin === window.location.origin) {
+      return `${url.pathname}${url.search}${url.hash}`;
+    }
+
+    return url.href;
+  } catch {
+    return href;
+  }
+}
+
+function getEventFromHref(href: string): SiteEventType | null {
+  const normalizedHref = href.toLowerCase();
+
+  if (
+    normalizedHref.includes("wa.me") ||
+    normalizedHref.includes("whatsapp.com") ||
+    normalizedHref.includes("api.whatsapp")
+  ) {
+    return "whatsapp_click";
+  }
+
+  const path = getPathFromHref(href).toLowerCase();
+
+  if (path.includes("/servicios#cotizador")) {
+    return "quote_click";
+  }
+
+  if (path === "/servicios" || path.startsWith("/servicios?")) {
+    return "service_view";
+  }
+
+  if (path.startsWith("/carrito")) {
+    return "cart_click";
+  }
+
+  if (path.startsWith("/checkout")) {
+    return "checkout_start";
+  }
+
+  if (path === "/tienda" || path.startsWith("/tienda?")) {
+    return "product_view";
+  }
+
+  if (path.startsWith("/tienda/")) {
+    return "product_view";
+  }
+
+  if (path.startsWith("/portafolio")) {
+    return "portfolio_view";
+  }
+
+  return null;
+}
+
+function getEventFromDataset(element: HTMLElement): SiteEventType | null {
+  const eventType = element.dataset.trackEvent;
+
+  if (!eventType) return null;
+
+  if (allowedEventTypes.has(eventType as SiteEventType)) {
+    return eventType as SiteEventType;
+  }
+
+  return null;
+}
+
 async function sendSiteEvent(
   eventType: SiteEventType,
   path: string,
   metadata: Record<string, unknown> = {}
 ) {
   if (typeof window === "undefined") return;
-  if (shouldIgnorePath(path)) return;
+  if (shouldIgnorePath(window.location.pathname)) return;
 
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -199,7 +361,7 @@ async function sendSiteEvent(
     viewport_height: height,
     ...getUtmParams(),
     metadata: {
-      page_group: getPageGroup(path),
+      page_group: getPageGroup(window.location.pathname || "/"),
       source: "site_tracker",
       ...metadata,
     },
@@ -225,10 +387,23 @@ export default function SiteTracker() {
   useEffect(() => {
     if (!pathname || shouldIgnorePath(pathname)) return;
 
-    if (wasRecentlyTracked(pathname)) return;
+    if (!wasRecentlyTracked(pathname)) {
+      markPageTracked(pathname);
+      void sendSiteEvent("page_view", pathname);
+    }
 
-    markPageTracked(pathname);
-    void sendSiteEvent("page_view", pathname);
+    const contextEvent = getContextEventFromPath(pathname);
+
+    if (
+      contextEvent &&
+      !wasRecentlyTrackedContextEvent(contextEvent, pathname)
+    ) {
+      markContextEventTracked(contextEvent, pathname);
+
+      void sendSiteEvent(contextEvent, pathname, {
+        trigger: "page_context",
+      });
+    }
   }, [pathname]);
 
   useEffect(() => {
@@ -237,11 +412,55 @@ export default function SiteTracker() {
       metadata: Record<string, unknown> = {}
     ) => {
       const path = window.location.pathname || "/";
-      void sendSiteEvent(eventType, path, metadata);
+      void sendSiteEvent(eventType, path, {
+        trigger: "manual",
+        ...metadata,
+      });
     };
 
     return () => {
       delete window.samoraTrackEvent;
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleTrackedClick(event: MouseEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Element)) return;
+
+      const clickable = target.closest("a,button");
+
+      if (!(clickable instanceof HTMLElement)) return;
+
+      const datasetEvent = getEventFromDataset(clickable);
+
+      let href: string | null = null;
+
+      if (clickable instanceof HTMLAnchorElement) {
+        href = clickable.href;
+      }
+
+      const eventFromHref = href ? getEventFromHref(href) : null;
+      const eventType = datasetEvent ?? eventFromHref;
+
+      if (!eventType) return;
+
+      const currentPath = window.location.pathname || "/";
+      const destination = href ? getPathFromHref(href) : null;
+      const label = normalizeText(clickable.textContent);
+
+      void sendSiteEvent(eventType, currentPath, {
+        trigger: datasetEvent ? "data_attribute" : "link_click",
+        destination,
+        label,
+      });
+    }
+
+    document.addEventListener("click", handleTrackedClick, true);
+
+    return () => {
+      document.removeEventListener("click", handleTrackedClick, true);
     };
   }, []);
 
