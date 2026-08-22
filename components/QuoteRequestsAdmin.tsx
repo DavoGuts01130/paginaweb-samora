@@ -209,6 +209,14 @@ type ReservationValues = {
   reservation_notes: string;
 };
 
+type LinkedCustomerFollowup = {
+  id: string;
+  related_id: string | null;
+  status: string;
+  priority: string;
+  updated_at: string | null;
+};
+
 const quoteRules: Record<ServiceKey, QuoteRule> = {
   matrimonio_boda: { label: "Matrimonio / boda", min: 1250000, max: 1800000, perHourMin: 90000, perHourMax: 160000 },
   quince_anos: { label: "Quince años", min: 650000, max: 1800000, perHourMin: 90000, perHourMax: 160000 },
@@ -309,6 +317,20 @@ const paymentStatusLabels: Record<string, string> = {
   cancelled: "Cancelado",
   refunded: "Reembolsado",
   not_required: "No requerido",
+};
+
+const customerFollowupStatusLabels: Record<string, string> = {
+  pendiente_contactar: "Pendiente contactar",
+  contactado: "Contactado",
+  sin_respuesta: "Sin respuesta",
+  esperando_cliente: "Esperando cliente",
+  esperando_pago: "Esperando pago",
+  esperando_comprobante: "Esperando comprobante",
+  entrega_pendiente: "Entrega pendiente",
+  seguimiento_programado: "Seguimiento programado",
+  revisar_manual: "Revisar manual",
+  cerrado: "Cerrado",
+  cancelado: "Cancelado",
 };
 
 const serviceOptions = Object.entries(quoteRules).map(([value, rule]) => ({ value: value as ServiceKey, label: rule.label }));
@@ -991,7 +1013,7 @@ function buildQuoteQuickWhatsappMessage(
 }
 
 export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: QuoteRequest[] }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
   const focusQuoteId = searchParams.get("focus");
 
@@ -1006,6 +1028,7 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState("");
   const [message, setMessage] = useState("");
+  const [crmFollowups, setCrmFollowups] = useState<Record<string, LinkedCustomerFollowup>>({});
 
   const stats = useMemo(() => {
     const total = quotes.length;
@@ -1031,6 +1054,48 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
       return matchesStatus && matchesSearch;
     });
   }, [quotes, search, statusFilter]);
+
+  useEffect(() => {
+    const quoteIds = quotes.map((quote) => quote.id);
+
+    if (quoteIds.length === 0) {
+      setCrmFollowups({});
+      return;
+    }
+
+    let isCancelled = false;
+
+    async function loadCrmFollowups() {
+      const { data, error } = await supabase
+        .from("customer_followups")
+        .select("id, related_id, status, priority, updated_at")
+        .eq("related_type", "quote_request")
+        .in("related_id", quoteIds);
+
+      if (error) {
+        console.error("Error cargando seguimientos CRM de cotizaciones:", error.message);
+        return;
+      }
+
+      const followupsByQuoteId: Record<string, LinkedCustomerFollowup> = {};
+
+      for (const followup of (data ?? []) as LinkedCustomerFollowup[]) {
+        if (followup.related_id) {
+          followupsByQuoteId[followup.related_id] = followup;
+        }
+      }
+
+      if (!isCancelled) {
+        setCrmFollowups(followupsByQuoteId);
+      }
+    }
+
+    loadCrmFollowups();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [quotes, supabase]);
 
   function selectQuote(quote: QuoteRequest) {
     setSelectedQuote(quote);
@@ -1456,6 +1521,21 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
                     <p className="mt-2 text-xs opacity-55">Reunión: {meetingStatusLabels[quote.meeting_status ?? "pendiente_programar"] ?? "Pendiente"}</p>
                     {quote.final_price_cop ? <p className="mt-2 text-sm font-medium">Final: {formatCOP(quote.final_price_cop)}</p> : <p className="mt-2 text-sm opacity-50">Sin valor final</p>}
                     <p className="mt-2 text-xs opacity-55">Reserva: {reservationStatusLabels[quote.reservation_status ?? "pending_deposit"] ?? "Pendiente de abono"}</p>
+                    {crmFollowups[quote.id] ? (
+                      <p
+                        className={`mt-3 rounded-xl border px-3 py-2 text-xs ${
+                          active
+                            ? "border-emerald-700/25 bg-emerald-100 text-emerald-900"
+                            : "border-emerald-400/20 bg-emerald-400/10 text-emerald-100/80"
+                        }`}
+                      >
+                        Seguimiento CRM: {customerFollowupStatusLabels[crmFollowups[quote.id].status] ?? crmFollowups[quote.id].status}
+                      </p>
+                    ) : (
+                      <p className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs opacity-45">
+                        Sin seguimiento CRM
+                      </p>
+                    )}
                     {quote.requires_travel_review && <p className={`mt-3 rounded-xl border px-3 py-2 text-xs ${active ? "border-yellow-500/30 bg-yellow-100 text-yellow-900" : "border-yellow-400/20 bg-yellow-400/10 text-yellow-100/80"}`}>Requiere revisión por desplazamiento</p>}
                   </button>
                 );
@@ -1489,6 +1569,7 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
               onOpenClientMeetingWhatsapp={openClientMeetingWhatsapp}
               onOpenClientFinalQuoteWhatsapp={openClientFinalQuoteWhatsapp}
               onOpenClientQuickWhatsapp={openClientQuickWhatsapp}
+              linkedCustomerFollowup={crmFollowups[selectedQuote.id] ?? null}
             />
           ) : (
             <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-sm text-white/45">Selecciona una solicitud para ver el detalle.</div>
@@ -1562,6 +1643,7 @@ function QuoteDetail({
   onOpenClientMeetingWhatsapp,
   onOpenClientFinalQuoteWhatsapp,
   onOpenClientQuickWhatsapp,
+  linkedCustomerFollowup,
 }: {
   quote: QuoteRequest;
   editMode: boolean;
@@ -1585,6 +1667,7 @@ function QuoteDetail({
   onOpenClientMeetingWhatsapp: (quote: QuoteRequest, meetingValues?: MeetingValues) => void;
   onOpenClientFinalQuoteWhatsapp: (quote: QuoteRequest) => void;
   onOpenClientQuickWhatsapp: (quote: QuoteRequest, type: QuoteQuickMessageType) => void;
+  linkedCustomerFollowup: LinkedCustomerFollowup | null;
 }) {
   return (
     <div>
@@ -1599,6 +1682,19 @@ function QuoteDetail({
           <button type="button" onClick={onToggleEdit} className="rounded-full border border-white/15 px-4 py-2 text-xs text-white/70 transition hover:border-white/35 hover:text-white">
             {editMode ? "Cerrar edición" : "Editar solicitud"}
           </button>
+
+          {linkedCustomerFollowup ? (
+            <Link
+              href={`/admin/seguimiento-clientes?focus=${linkedCustomerFollowup.id}`}
+              className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-4 py-2 text-xs text-emerald-100/80 transition hover:border-emerald-300/45 hover:text-emerald-50"
+            >
+              Ver seguimiento CRM →
+            </Link>
+          ) : (
+            <span className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-white/35">
+              Sin seguimiento CRM
+            </span>
+          )}
         </div>
       </div>
 

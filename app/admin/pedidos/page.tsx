@@ -58,6 +58,14 @@ type StoreOrder = {
   store_order_items: StoreOrderItem[] | null;
 };
 
+type LinkedCustomerFollowup = {
+  id: string;
+  related_id: string | null;
+  status: string;
+  priority: string;
+  updated_at: string | null;
+};
+
 const orderStatusOptions = [
   { value: "new", label: "Nuevo" },
   { value: "pending_payment", label: "Pendiente de pago" },
@@ -77,6 +85,20 @@ const paymentStatusOptions = [
   { value: "refunded", label: "Reembolsado" },
   { value: "not_required", label: "No requerido" },
 ];
+
+const customerFollowupStatusLabels: Record<string, string> = {
+  pendiente_contactar: "Pendiente contactar",
+  contactado: "Contactado",
+  sin_respuesta: "Sin respuesta",
+  esperando_cliente: "Esperando cliente",
+  esperando_pago: "Esperando pago",
+  esperando_comprobante: "Esperando comprobante",
+  entrega_pendiente: "Entrega pendiente",
+  seguimiento_programado: "Seguimiento programado",
+  revisar_manual: "Revisar manual",
+  cerrado: "Cerrado",
+  cancelado: "Cancelado",
+};
 
 const deliveryStatusOptions = [
   { value: "pending", label: "Pendiente" },
@@ -489,6 +511,30 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
   }
 
   const { data: orders } = await ordersQuery;
+  const orderList = (orders ?? []) as StoreOrder[];
+  const orderIds = orderList.map((order) => order.id);
+  const followupsByOrderId = new Map<string, LinkedCustomerFollowup>();
+
+  if (orderIds.length > 0) {
+    const { data: orderFollowups, error: orderFollowupsError } = await supabase
+      .from("customer_followups")
+      .select("id, related_id, status, priority, updated_at")
+      .eq("related_type", "store_order")
+      .in("related_id", orderIds);
+
+    if (orderFollowupsError) {
+      console.error(
+        "Error cargando seguimientos CRM de pedidos:",
+        orderFollowupsError.message
+      );
+    }
+
+    for (const followup of (orderFollowups ?? []) as LinkedCustomerFollowup[]) {
+      if (followup.related_id) {
+        followupsByOrderId.set(followup.related_id, followup);
+      }
+    }
+  }
 
   const { data: allOrdersForStats } = await supabase
     .from("store_orders")
@@ -605,8 +651,11 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
           )}
 
           <div className="mt-8 space-y-6">
-            {orders && orders.length > 0 ? (
-              (orders as StoreOrder[]).map((order) => (
+            {orderList.length > 0 ? (
+              orderList.map((order) => {
+                const linkedCustomerFollowup = followupsByOrderId.get(order.id);
+
+                return (
                 <article
                   key={order.id}
                   id={`order-${order.id}`}
@@ -643,6 +692,19 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
                       >
                         Pago: {getPaymentStatusLabel(order.payment_status)}
                       </Badge>
+
+                      {linkedCustomerFollowup ? (
+                        <Link
+                          href={`/admin/seguimiento-clientes?focus=${linkedCustomerFollowup.id}`}
+                          className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-100/80 transition hover:border-emerald-300/45 hover:text-emerald-50"
+                        >
+                          CRM: {customerFollowupStatusLabels[linkedCustomerFollowup.status] ?? linkedCustomerFollowup.status} →
+                        </Link>
+                      ) : (
+                        <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-white/35">
+                          Sin seguimiento CRM
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -863,7 +925,8 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
                     </div>
                   )}
                 </article>
-              ))
+                );
+              })
             ) : (
               <div className="premium-card rounded-[1.5rem] p-8 text-center text-white/50 sm:p-10">
                 No hay pedidos que coincidan con los filtros.

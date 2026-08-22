@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { CustomerFollowup } from "@/app/admin/seguimiento-clientes/page";
 
@@ -278,6 +279,9 @@ export default function CustomerFollowupsAdmin({
   initialFollowups: CustomerFollowup[];
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const searchParams = useSearchParams();
+  const focusFollowupId = searchParams.get("focus");
+  const handledFocusRef = useRef("");
 
   const [followups, setFollowups] =
     useState<CustomerFollowup[]>(initialFollowups);
@@ -358,6 +362,39 @@ export default function CustomerFollowupsAdmin({
   const scheduledCount = followups.filter((item) =>
     Boolean(item.next_followup_at)
   ).length;
+
+  useEffect(() => {
+    if (!focusFollowupId || handledFocusRef.current === focusFollowupId) return;
+
+    const focusedFollowup = followups.find(
+      (item) =>
+        item.id === focusFollowupId ||
+        item.related_id === focusFollowupId ||
+        item.related_code === focusFollowupId
+    );
+
+    handledFocusRef.current = focusFollowupId;
+    setStatusFilter("todos");
+    setPriorityFilter("todas");
+
+    if (!focusedFollowup) {
+      setSearch(focusFollowupId);
+      showNotice(
+        "No se encontró el seguimiento exacto. Se dejó el código en búsqueda para revisión manual."
+      );
+      return;
+    }
+
+    setSearch("");
+    setSelectedId(focusedFollowup.id);
+    showNotice("Seguimiento seleccionado desde cotizaciones o pedidos.");
+
+    window.setTimeout(() => {
+      document
+        .getElementById(`followup-${focusedFollowup.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+  }, [focusFollowupId, followups]);
 
   function showNotice(message: string) {
     setNotice(message);
@@ -646,6 +683,7 @@ export default function CustomerFollowupsAdmin({
               filteredFollowups.map((followup) => (
                 <button
                   key={followup.id}
+                  id={`followup-${followup.id}`}
                   type="button"
                   onClick={() => setSelectedId(followup.id)}
                   className={`block w-full rounded-2xl border p-4 text-left transition hover:border-white/25 ${
