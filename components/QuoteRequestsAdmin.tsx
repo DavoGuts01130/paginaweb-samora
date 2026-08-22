@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export type QuoteStatus =
@@ -991,6 +992,9 @@ function buildQuoteQuickWhatsappMessage(
 
 export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: QuoteRequest[] }) {
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const focusQuoteId = searchParams.get("focus");
+
   const [quotes, setQuotes] = useState<QuoteRequest[]>(initialQuotes);
   const [selectedQuote, setSelectedQuote] = useState<QuoteRequest | null>(initialQuotes[0] ?? null);
   const [editMode, setEditMode] = useState(false);
@@ -1037,6 +1041,39 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
     setEditMode(false);
     setMessage("");
   }
+
+  useEffect(() => {
+    if (!focusQuoteId) return;
+
+    const focusedQuote = quotes.find(
+      (quote) => quote.id === focusQuoteId || quote.quote_code === focusQuoteId
+    );
+
+    setStatusFilter("all");
+
+    if (!focusedQuote) {
+      setSearch(focusQuoteId);
+      setMessage(
+        "No se encontró la cotización exacta. Se dejó el código en búsqueda para revisión manual."
+      );
+      return;
+    }
+
+    setSelectedQuote(focusedQuote);
+    setEditValues(createEditValues(focusedQuote));
+    setMeetingValues(createMeetingValues(focusedQuote));
+    setScheduleValues(createScheduleValues(focusedQuote));
+    setReservationValues(createReservationValues(focusedQuote));
+    setEditMode(false);
+    setSearch(focusedQuote.quote_code);
+    setMessage(`Cotización ${focusedQuote.quote_code} seleccionada desde el CRM.`);
+
+    window.setTimeout(() => {
+      document
+        .getElementById(`quote-${focusedQuote.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+  }, [focusQuoteId, quotes]);
 
   function updateLocalQuote(updatedQuote: QuoteRequest) {
     setQuotes((currentQuotes) => currentQuotes.map((quote) => (quote.id === updatedQuote.id ? updatedQuote : quote)));
@@ -1403,6 +1440,7 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
                 return (
                   <button
                     key={quote.id}
+                    id={`quote-${quote.id}`}
                     type="button"
                     onClick={() => selectQuote(quote)}
                     className={`rounded-2xl border p-4 text-left transition ${active ? "border-white bg-white text-black" : "border-white/10 bg-black/30 text-white hover:border-white/25"}`}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { CustomerFollowup } from "@/app/admin/seguimiento-clientes/page";
 
@@ -167,6 +168,38 @@ function fromDateTimeLocalValue(value: string) {
   return utcDate.toISOString();
 }
 
+function getFollowupDisplayTitle(followup: CustomerFollowup) {
+  if (followup.related_type === "quote_request") {
+    return "Cotización pendiente";
+  }
+
+  if (followup.related_type === "store_order") {
+    return "Pedido pendiente";
+  }
+
+  if (followup.related_type === "manual") {
+    return followup.title || "Seguimiento manual";
+  }
+
+  return followup.title || "Seguimiento";
+}
+
+function getFollowupOriginLabel(followup: CustomerFollowup) {
+  if (followup.related_type === "quote_request") {
+    return "Origen: Cotización";
+  }
+
+  if (followup.related_type === "store_order") {
+    return "Origen: Pedido";
+  }
+
+  if (followup.related_type === "manual") {
+    return "Origen: Manual";
+  }
+
+  return relatedLabels[followup.related_type] ?? followup.related_type;
+}
+
 function buildWhatsappMessage(followup: CustomerFollowup) {
   const name = followup.customer_name?.trim() || "cliente";
 
@@ -283,6 +316,7 @@ export default function CustomerFollowupsAdmin({
           item.title,
           item.summary,
           item.internal_notes,
+          getFollowupDisplayTitle(item),
         ]
           .filter(Boolean)
           .join(" ")
@@ -627,7 +661,7 @@ export default function CustomerFollowupsAdmin({
                       </p>
 
                       <p className="mt-1 truncate text-sm text-white/40">
-                        {followup.title || followup.summary || "Sin resumen"}
+                        {getFollowupDisplayTitle(followup)}
                       </p>
                     </div>
 
@@ -891,6 +925,8 @@ function FollowupDetail({
               </p>
               <p>Intentos: {followup.contact_attempts}</p>
               <p>Último contacto: {formatDate(followup.last_contacted_at)}</p>
+              <p>{getFollowupOriginLabel(followup)}</p>
+              {followup.related_code && <p>Código: {followup.related_code}</p>}
             </div>
           </div>
 
@@ -916,6 +952,8 @@ function FollowupDetail({
             </span>
           </div>
         </div>
+
+        <OriginAction followup={followup} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -1028,6 +1066,46 @@ function FollowupDetail({
       </div>
     </div>
   );
+}
+
+function OriginAction({ followup }: { followup: CustomerFollowup }) {
+  if (followup.related_type === "quote_request") {
+    const href = followup.related_id
+      ? `/admin/cotizaciones?focus=${encodeURIComponent(followup.related_id)}`
+      : "/admin/cotizaciones";
+
+    return (
+      <div className="mt-4 flex flex-wrap gap-3 border-t border-white/10 pt-4">
+        <Link
+          href={href}
+          className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-white/70 transition hover:border-white hover:bg-white hover:text-black"
+        >
+          Ver cotización →
+        </Link>
+      </div>
+    );
+  }
+
+  if (followup.related_type === "store_order") {
+    const href = followup.related_id
+      ? `/admin/pedidos?focus=${encodeURIComponent(
+          followup.related_id
+        )}#order-${followup.related_id}`
+      : "/admin/pedidos";
+
+    return (
+      <div className="mt-4 flex flex-wrap gap-3 border-t border-white/10 pt-4">
+        <Link
+          href={href}
+          className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-white/70 transition hover:border-white hover:bg-white hover:text-black"
+        >
+          Ver pedido →
+        </Link>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 function MetricCard({ label, value }: { label: string; value: number }) {

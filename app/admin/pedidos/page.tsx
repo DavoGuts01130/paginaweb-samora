@@ -10,6 +10,7 @@ type Props = {
     status?: string;
     payment?: string;
     q?: string;
+    focus?: string;
   }>;
 };
 
@@ -433,6 +434,7 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
   const selectedStatus = params.status ?? "todos";
   const selectedPayment = params.payment ?? "todos";
   const searchQuery = params.q ?? "";
+  const focusOrderId = params.focus ?? "";
 
   const supabase = await createClient();
 
@@ -468,18 +470,22 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
     )
     .order("created_at", { ascending: false });
 
-  if (selectedStatus !== "todos") {
-    ordersQuery = ordersQuery.eq("status", selectedStatus);
-  }
+  if (focusOrderId) {
+    ordersQuery = ordersQuery.eq("id", focusOrderId);
+  } else {
+    if (selectedStatus !== "todos") {
+      ordersQuery = ordersQuery.eq("status", selectedStatus);
+    }
 
-  if (selectedPayment !== "todos") {
-    ordersQuery = ordersQuery.eq("payment_status", selectedPayment);
-  }
+    if (selectedPayment !== "todos") {
+      ordersQuery = ordersQuery.eq("payment_status", selectedPayment);
+    }
 
-  if (searchQuery.trim()) {
-    ordersQuery = ordersQuery.or(
-      `customer_name.ilike.%${searchQuery}%,customer_email.ilike.%${searchQuery}%,customer_phone.ilike.%${searchQuery}%,order_code.ilike.%${searchQuery}%`
-    );
+    if (searchQuery.trim()) {
+      ordersQuery = ordersQuery.or(
+        `customer_name.ilike.%${searchQuery}%,customer_email.ilike.%${searchQuery}%,customer_phone.ilike.%${searchQuery}%,order_code.ilike.%${searchQuery}%`
+      );
+    }
   }
 
   const { data: orders } = await ordersQuery;
@@ -587,7 +593,7 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
             </div>
           </form>
 
-          {(selectedStatus !== "todos" || selectedPayment !== "todos" || searchQuery) && (
+          {(selectedStatus !== "todos" || selectedPayment !== "todos" || searchQuery || focusOrderId) && (
             <div className="mt-4">
               <Link
                 href="/admin/pedidos"
@@ -603,7 +609,10 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
               (orders as StoreOrder[]).map((order) => (
                 <article
                   key={order.id}
-                  className="premium-card rounded-[1.5rem] p-4 transition hover:border-white/20 sm:p-6"
+                  id={`order-${order.id}`}
+                  className={`premium-card rounded-[1.5rem] p-4 transition hover:border-white/20 sm:p-6 ${
+                    focusOrderId === order.id ? "border-white/35 bg-white/[0.06]" : ""
+                  }`}
                 >
                   <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-white/10 bg-black p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
