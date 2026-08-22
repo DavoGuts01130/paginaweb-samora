@@ -9,6 +9,7 @@ export type CartItem = {
   price: number;
   image_url: string | null;
   quantity: number;
+  stock?: number | null;
 };
 
 type CartContextType = {
@@ -25,6 +26,39 @@ const CartContext = createContext<CartContextType | null>(null);
 
 const CART_STORAGE_KEY = "samora-cart";
 
+function getStockLimit(stock: number | null | undefined) {
+  if (stock === null || stock === undefined) return null;
+
+  const normalizedStock = Math.floor(Number(stock));
+
+  if (!Number.isFinite(normalizedStock)) return null;
+
+  return Math.max(normalizedStock, 0);
+}
+
+function getSafeQuantity(quantity: number, stock: number | null | undefined) {
+  const stockLimit = getStockLimit(stock);
+  const safeQuantity = Math.max(1, Math.floor(Number(quantity || 1)));
+
+  if (stockLimit === null) return safeQuantity;
+  if (stockLimit <= 0) return 0;
+
+  return Math.min(safeQuantity, stockLimit);
+}
+
+function normalizeCartItem(item: CartItem) {
+  const safeQuantity = getSafeQuantity(item.quantity, item.stock);
+
+  if (safeQuantity <= 0) return null;
+
+  return {
+    ...item,
+    price: Number(item.price ?? 0),
+    quantity: safeQuantity,
+    stock: item.stock ?? null,
+  } satisfies CartItem;
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hasLoadedCart, setHasLoadedCart] = useState(false);
@@ -40,11 +74,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           setItems(
             parsedCart
               .filter((item) => item && item.id && item.name)
-              .map((item) => ({
-                ...item,
-                price: Number(item.price ?? 0),
-                quantity: Math.max(1, Number(item.quantity ?? 1)),
-              }))
+              .map((item) =>
+                normalizeCartItem({
+                  ...item,
+                  price: Number(item.price ?? 0),
+                  quantity: Number(item.quantity ?? 1),
+                  stock: item.stock ?? null,
+                })
+              )
+              .filter(Boolean) as CartItem[]
           );
         }
       }
@@ -62,17 +100,36 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   function addItem(item: Omit<CartItem, "quantity">) {
     setItems((currentItems) => {
+      const stockLimit = getStockLimit(item.stock);
+
+      if (stockLimit !== null && stockLimit <= 0) {
+        return currentItems;
+      }
+
       const existingItem = currentItems.find((cartItem) => cartItem.id === item.id);
 
       if (existingItem) {
-        return currentItems.map((cartItem) =>
-          cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
+        return currentItems.map((cartItem) => {
+          if (cartItem.id !== item.id) return cartItem;
+
+          const nextQuantity = getSafeQuantity(
+            cartItem.quantity + 1,
+            item.stock ?? cartItem.stock
+          );
+
+          return {
+            ...cartItem,
+            ...item,
+            quantity: nextQuantity || cartItem.quantity,
+          };
+        });
       }
 
-      return [...currentItems, { ...item, quantity: 1 }];
+      const quantity = getSafeQuantity(1, item.stock);
+
+      if (quantity <= 0) return currentItems;
+
+      return [...currentItems, { ...item, quantity }];
     });
   }
 
@@ -81,12 +138,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   function updateItemQuantity(id: string, quantity: number) {
-    const safeQuantity = Math.max(1, Number(quantity || 1));
-
     setItems((currentItems) =>
-      currentItems.map((item) =>
-        item.id === id ? { ...item, quantity: safeQuantity } : item
-      )
+      currentItems
+        .map((item) => {
+          if (item.id !== id) return item;
+
+          const safeQuantity = getSafeQuantity(quantity, item.stock);
+
+          if (safeQuantity <= 0) return null;
+
+          return { ...item, quantity: safeQuantity };
+        })
+        .filter(Boolean) as CartItem[]
     );
   }
 

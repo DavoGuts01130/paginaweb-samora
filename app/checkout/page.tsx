@@ -45,14 +45,26 @@ export default function CheckoutPage() {
   const [message, setMessage] = useState("");
   const [createdOrderCode, setCreatedOrderCode] = useState("");
 
+  const localStockIssue = useMemo(() => {
+    return items.find((item) => {
+      const stockValue = (item as { stock?: number }).stock;
+
+      if (typeof stockValue !== "number") return false;
+
+      const stock = Number(stockValue);
+      return stock >= 0 && item.quantity > stock;
+    });
+  }, [items]);
+
   const canSubmit = useMemo(() => {
     return (
       items.length > 0 &&
+      !localStockIssue &&
       customerName.trim().length >= 3 &&
       normalizePhone(customerPhone).length >= 10 &&
       !isSubmitting
     );
-  }, [customerName, customerPhone, isSubmitting, items.length]);
+  }, [customerName, customerPhone, isSubmitting, items.length, localStockIssue]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,67 +79,46 @@ export default function CheckoutPage() {
 
     const supabase = createClient();
     const orderCode = buildOrderCode();
-    const subtotal = totalPrice;
-    const deliveryPrice = 0;
-    const discount = 0;
-    const total = subtotal + deliveryPrice - discount;
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      if (localStockIssue) {
+        throw new Error(
+          `No hay stock suficiente para ${localStockIssue.name}. Disponible: ${(localStockIssue as { stock?: number }).stock ?? 0}, solicitado: ${localStockIssue.quantity}.`
+        );
+      }
 
-      const { data: order, error: orderError } = await supabase
-        .from("store_orders")
-        .insert({
-          order_code: orderCode,
-          user_id: user?.id ?? null,
-          customer_name: customerName.trim(),
-          customer_phone: normalizePhone(customerPhone),
-          customer_email: customerEmail.trim() || null,
-          customer_document: customerDocument.trim() || null,
-          status: "pending_payment",
-          subtotal_cop: subtotal,
-          delivery_price_cop: deliveryPrice,
-          discount_cop: discount,
-          total_cop: total,
-          delivery_type: deliveryType,
-          delivery_status: "pending",
-          delivery_address: deliveryAddress.trim() || null,
-          delivery_city: deliveryCity.trim() || null,
-          delivery_notes: deliveryNotes.trim() || null,
-          payment_provider: "manual",
-          payment_method: paymentMethod,
-          payment_status: "pending",
-          customer_notes: customerNotes.trim() || null,
-          source: "web_store",
-        })
-        .select("id, order_code")
-        .single();
+      const cartItems = items.map((item) => ({
+        product_id: item.id,
+        quantity: item.quantity,
+      }));
 
-      if (orderError || !order) {
+      const { data: createdOrder, error: orderError } = await supabase.rpc(
+        "create_store_order_with_stock_check",
+        {
+          p_order_code: orderCode,
+          p_customer_name: customerName.trim(),
+          p_customer_phone: normalizePhone(customerPhone),
+          p_customer_email: customerEmail.trim() || null,
+          p_customer_document: customerDocument.trim() || null,
+          p_delivery_type: deliveryType,
+          p_delivery_address: deliveryAddress.trim() || null,
+          p_delivery_city: deliveryCity.trim() || null,
+          p_delivery_notes: deliveryNotes.trim() || null,
+          p_payment_method: paymentMethod,
+          p_customer_notes: customerNotes.trim() || null,
+          p_items: cartItems,
+        }
+      );
+
+      if (orderError || !createdOrder) {
         throw new Error(orderError?.message || "No se pudo crear el pedido.");
       }
 
-      const orderItems = items.map((item) => ({
-        order_id: order.id,
-        product_id: item.id,
-        product_name: item.name,
-        product_slug: item.slug,
-        product_image_url: item.image_url,
-        unit_price_cop: item.price,
-        quantity: item.quantity,
-        total_cop: item.price * item.quantity,
-        selected_options: {},
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("store_order_items")
-        .insert(orderItems);
-
-      if (itemsError) {
-        throw new Error(itemsError.message);
-      }
+      const order = createdOrder as {
+        id: string;
+        order_code: string;
+        total_cop: number;
+      };
 
       setCreatedOrderCode(order.order_code);
       clearCart();
@@ -412,6 +403,12 @@ export default function CheckoutPage() {
                   <span className="text-white/55">Total</span>
                   <span className="text-2xl font-bold">{formatCOP(totalPrice)}</span>
                 </div>
+
+                {localStockIssue && (
+                  <p className="mt-5 rounded-2xl border border-red-400/20 bg-red-400/10 p-4 text-sm leading-6 text-red-100/80">
+                    No hay stock suficiente para {localStockIssue.name}. Disponible: {(localStockIssue as { stock?: number }).stock ?? 0}, solicitado: {localStockIssue.quantity}.
+                  </p>
+                )}
 
                 {message && (
                   <p className="mt-5 rounded-2xl border border-white/10 bg-black p-4 text-sm leading-6 text-white/55">

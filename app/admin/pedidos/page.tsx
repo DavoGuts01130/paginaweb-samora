@@ -50,6 +50,7 @@ type StoreOrder = {
   cancelled_at: string | null;
   completed_at: string | null;
   stock_deducted_at: string | null;
+  stock_restored_at: string | null;
   admin_notes: string | null;
   customer_notes: string | null;
   created_at: string;
@@ -376,7 +377,7 @@ async function updateStoreOrderAction(formData: FormData) {
 
   const { data: currentOrder } = await supabase
     .from("store_orders")
-    .select("status,payment_status,paid_at,completed_at,cancelled_at")
+    .select("status,payment_status,paid_at,completed_at,cancelled_at,stock_deducted_at,stock_restored_at")
     .eq("id", orderId)
     .single();
 
@@ -670,9 +671,21 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
                         {order.payment_provider === "wompi" ? "Wompi" : "Manual"} · {getPaymentMethodLabel(order.payment_method)}
                       </p>
 
-                      {order.stock_deducted_at && (
+                      {order.stock_restored_at ? (
+                        <p className="mt-3 text-xs leading-5 text-yellow-200/85">
+                          Stock restaurado: {formatDateTime(order.stock_restored_at)}
+                        </p>
+                      ) : order.stock_deducted_at ? (
                         <p className="mt-3 text-xs leading-5 text-green-300/80">
                           Stock descontado: {formatDateTime(order.stock_deducted_at)}
+                        </p>
+                      ) : order.payment_status === "paid" ? (
+                        <p className="mt-3 text-xs leading-5 text-red-200/80">
+                          Stock pendiente de descontar. Revisa el SQL de inventario seguro.
+                        </p>
+                      ) : (
+                        <p className="mt-3 text-xs leading-5 text-white/35">
+                          Stock pendiente hasta confirmar pago.
                         </p>
                       )}
                     </div>
@@ -727,7 +740,7 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
 
                       <p className="text-sm font-medium">Gestión del pedido</p>
                       <p className="mt-1 text-xs leading-5 text-white/35">
-                        Actualiza estado, pago manual, referencia o datos de Wompi cuando esté disponible.
+                        Actualiza estado, pago manual, referencia o datos de Wompi cuando esté disponible. El stock se descuenta al marcar pago como pagado y se restaura si el pedido se cancela o se reembolsa.
                       </p>
 
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">

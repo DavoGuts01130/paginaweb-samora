@@ -79,14 +79,14 @@ export default function ContactoPage() {
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               <Link
                 href="/servicios#cotizador"
-                className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-7 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
+                className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-7 py-3 text-sm font-medium !text-black transition hover:scale-[1.02] hover:!text-black"
               >
                 Realizar cotización
               </Link>
 
               <Link
                 href="/servicios"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-7 py-3 text-sm font-medium text-white/70 transition hover:border-white/35 hover:bg-white hover:text-black"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-7 py-3 text-sm font-medium text-white transition hover:border-white hover:bg-white hover:!text-black"
               >
                 Ver productos y servicios
               </Link>
@@ -103,7 +103,7 @@ export default function ContactoPage() {
                       href={action.href}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/55 transition hover:border-white/25 hover:text-white"
+                      className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/65 transition hover:border-white hover:bg-white hover:!text-black"
                     >
                       {action.label}
                     </a>
@@ -114,7 +114,7 @@ export default function ContactoPage() {
                   <Link
                     key={action.label}
                     href={action.href}
-                    className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/55 transition hover:border-white/25 hover:text-white"
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/65 transition hover:border-white hover:bg-white hover:!text-black"
                   >
                     {action.label}
                   </Link>
@@ -155,14 +155,14 @@ export default function ContactoPage() {
               href={whatsappLink}
               target="_blank"
               rel="noreferrer"
-              className="mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-white px-7 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
+              className="mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-white px-7 py-3 text-sm font-medium !text-black transition hover:scale-[1.02] hover:!text-black"
             >
               Iniciar conversación
             </a>
 
             <Link
               href="/seguimiento"
-              className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/15 px-7 py-3 text-sm font-medium text-white/65 transition hover:border-white/35 hover:text-white"
+              className="mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/15 px-7 py-3 text-sm font-medium text-white transition hover:border-white hover:bg-white hover:!text-black"
             >
               Consultar seguimiento
             </Link>
