@@ -26,12 +26,16 @@ export default function Navbar() {
   useEffect(() => {
     const supabase = createClient();
 
+    let mounted = true;
+
     async function getUser() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
-      setIsLoggedIn(!!user);
+      if (mounted) {
+        setIsLoggedIn(!!user);
+      }
     }
 
     getUser();
@@ -39,10 +43,15 @@ export default function Navbar() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session?.user);
+      if (mounted) {
+        setIsLoggedIn(!!session?.user);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -62,14 +71,14 @@ export default function Navbar() {
   }
 
   return (
-    <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-black/75 backdrop-blur-xl">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 text-white sm:px-6">
+    <header className="fixed left-0 top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-xl">
+      <nav className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-4 text-white sm:px-6 lg:px-8">
         <Link
           href="/"
           aria-label="Ir al inicio de Samora Estudio"
           className="group flex min-w-0 items-center gap-3 text-white"
         >
-          <span className="shrink-0 text-lg font-semibold uppercase tracking-[0.22em] transition group-hover:tracking-[0.26em] sm:text-xl">
+          <span className="shrink-0 text-lg font-semibold uppercase tracking-[0.24em] transition group-hover:tracking-[0.28em] sm:text-xl">
             Samora
           </span>
 
@@ -81,11 +90,11 @@ export default function Navbar() {
             width={44}
             height={54}
             priority
-            className="hidden h-9 w-auto shrink-0 object-contain opacity-85 transition group-hover:opacity-100 sm:block"
+            className="hidden h-9 w-auto shrink-0 object-contain opacity-85 transition group-hover:opacity-100 sm:block xl:h-10"
           />
         </Link>
 
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-6 xl:flex">
           {links.map((link) => {
             const active = isActiveLink(link.href);
 
@@ -103,20 +112,20 @@ export default function Navbar() {
           })}
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 xl:flex">
           <CartNavLink />
-
           <AccountLink isLoggedIn={isLoggedIn} />
         </div>
 
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 xl:hidden">
           <CartNavLink />
 
           <button
             type="button"
             onClick={() => setMenuOpen((current) => !current)}
             aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white transition hover:bg-white hover:text-black"
+            aria-expanded={menuOpen}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white transition hover:border-white/35 hover:bg-white hover:text-black"
           >
             {menuOpen ? (
               <span className="text-2xl leading-none">×</span>
@@ -140,11 +149,11 @@ export default function Navbar() {
       </nav>
 
       {menuOpen && (
-        <div className="fixed inset-x-0 top-[69px] z-40 h-[calc(100vh-69px)] overflow-y-auto border-t border-white/10 bg-black/95 px-4 py-5 backdrop-blur-xl md:hidden">
+        <div className="fixed inset-x-0 top-[68px] z-40 h-[calc(100vh-68px)] overflow-y-auto border-t border-white/10 bg-black/95 px-4 py-5 backdrop-blur-xl xl:hidden">
           <div className="mx-auto max-w-7xl">
-            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
               <div className="mb-4 flex items-center gap-3 border-b border-white/10 pb-4">
-                <span className="text-base font-semibold uppercase tracking-[0.22em] text-white">
+                <span className="text-base font-semibold uppercase tracking-[0.24em] text-white">
                   Samora
                 </span>
 
