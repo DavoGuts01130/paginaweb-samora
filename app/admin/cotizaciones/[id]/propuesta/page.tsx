@@ -730,6 +730,18 @@ function WeddingFeatureItem({
   );
 }
 
+function WeddingRichCheckItem({ children }: { children: ReactNode }) {
+  return (
+    <li className="flex gap-3 text-[15.5px] leading-[1.28] text-neutral-800">
+      <span className="mt-0.5 flex h-[23px] w-[23px] shrink-0 items-center justify-center rounded-full bg-[var(--samora-teal)] text-[11px] font-bold text-white">
+        ✓
+      </span>
+
+      <span>{children}</span>
+    </li>
+  );
+}
+
 function DataBlock({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -1208,39 +1220,168 @@ function WeddingProposal({ quote }: { quote: ProposalQuote }) {
       {/* 08 - Paquete 2 Ideal */}
       <section className="proposal-sheet overflow-hidden bg-[var(--samora-cream)] text-neutral-950">
         <div className="absolute inset-x-0 bottom-0 h-[56px] bg-[var(--samora-teal)]" />
+
         <div className="px-[56px] pt-[50px]">
           <p className="text-[17px] font-black uppercase tracking-[0.12em] text-[var(--samora-teal)]">
             {weddingPackages[1].number}
           </p>
+
           <h2 className="proposal-display mt-1 text-[78px] leading-[0.86] text-neutral-900">
             {weddingPackages[1].name}
           </h2>
-          <p className="mt-4 max-w-[800px] text-justify text-[15.5px] leading-[1.45] text-neutral-800">
+
+          <p className="mt-4 max-w-[810px] text-justify text-[16px] leading-[1.45] tracking-[0.002em] text-neutral-800">
             {weddingPackages[1].intro}
           </p>
-          <ImageBox
-            src={weddingImages.ideal1}
-            className="mt-6 h-[220px] w-full"
-            objectPosition="center 58%"
-          />
+
+          <div className="mt-6 h-[250px] w-full overflow-hidden bg-[var(--samora-card)]">
+            <img
+              src={weddingImages.ideal1}
+              alt="Detalle de manos y ramo de boda"
+              className="block h-auto w-full"
+              style={{
+                transform: "translateY(-280px) scale(1.05)",
+                transformOrigin: "center top",
+              }}
+            />
+          </div>
+
         </div>
-        <div className="grid grid-cols-[1fr_39%] gap-8 px-[56px] pt-8">
+
+        <div className="grid grid-cols-[1fr_39%] gap-8 px-[56px] pt-7">
           <div className="bg-[var(--samora-card)] px-8 py-7">
-            <h3 className="proposal-display text-[42px] leading-none text-[var(--samora-teal)]">
+            <h3 className="proposal-display text-[43px] leading-none text-[var(--samora-teal)]">
               Registro fotográfico y videográfico
             </h3>
+
             <ul className="mt-6 grid gap-3.5">
-              {weddingPackages[1].coverage.map((item) => (
-                <CheckItem key={item}>{item}</CheckItem>
-              ))}
+              <CheckItem>
+                <strong className="font-black">
+                  Cobertura fotográfica y videográfica de la ceremonia
+                </strong>{" "}
+                religiosa o simbólica.
+              </CheckItem>
+
+              <CheckItem>
+                <strong className="font-black">Sesión fotográfica</strong> posterior
+                a la ceremonia.
+              </CheckItem>
+
+              <CheckItem>
+                <strong className="font-black">Recepción</strong> · Momentos
+                importantes de la celebración, entrada de los novios, brindis, vals,
+                fotografías familiares, invitados, detalles de decoración y momentos
+                espontáneos.
+              </CheckItem>
+
+              <CheckItem>
+                <strong className="font-black">Registro aéreo y terrestre</strong>{" "}
+                con drone y registro audiovisual desde tierra para complementar la
+                historia de la celebración.
+              </CheckItem>
             </ul>
           </div>
-          <ImageBox src={weddingImages.ideal2} className="h-[355px] w-full" objectPosition="center 47%" />
+
+          <ImageBox
+            src={weddingImages.ideal2}
+            className="h-[405px] w-full"
+            objectPosition="center 47%"
+          />
         </div>
       </section>
 
       {/* 09 - Entregables Ideal */}
-      <WeddingPackageDeliverables packageData={weddingPackages[1]} images={[weddingImages.ideal3, weddingImages.ideal4]} reverse />
+      <section className="proposal-sheet overflow-hidden bg-[var(--samora-cream)] text-neutral-950">
+        <div className="absolute inset-x-0 bottom-0 h-[56px] bg-[var(--samora-teal)]" />
+
+        <div className="h-[308px] w-full overflow-hidden bg-[var(--samora-card)]">
+          <img
+            src={weddingImages.ideal3}
+            alt="Detalle de anillos de boda"
+            className="block"
+            style={{
+              width: "100%",
+              height: "auto",
+              transform: "translateY(-480px) scale(1)",
+              transformOrigin: "center top",
+            }}
+          />
+        </div>
+
+        <div className="grid grid-cols-[34%_1fr] gap-[30px] px-[46px] pt-[25px]">
+          <div className="h-[580px] w-full overflow-hidden bg-[var(--samora-card)]">
+            <img
+              src={weddingImages.ideal4}
+              alt="Pareja de boda tomada de la mano"
+              className="block"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center 58%",
+              }}
+            />
+          </div>
+
+          <div className="h-[580px] bg-[var(--samora-card)] px-8 pb-7 pt-7">
+            <h2 className="proposal-display text-[47px] leading-none text-[var(--samora-teal)]">
+              Entregables
+            </h2>
+
+            <ul className="mt-5 grid gap-3">
+              <WeddingRichCheckItem>
+                <strong className="font-black">
+                  Aproximadamente 200 fotos digitales
+                </strong>{" "}
+                editadas en alta resolución.
+              </WeddingRichCheckItem>
+
+              <WeddingRichCheckItem>
+                <strong className="font-black">Álbum digital</strong> con selección de
+                las mejores fotografías mediante una plataforma online privada.
+              </WeddingRichCheckItem>
+
+              <WeddingRichCheckItem>
+                <strong className="font-black">Video de la boda</strong> pieza
+                audiovisual de aproximadamente{" "}
+                <strong className="font-black">3 a 4 minutos</strong>, con los
+                momentos más representativos de la celebración.
+              </WeddingRichCheckItem>
+            </ul>
+
+            <h3 className="proposal-display mt-6 text-[40px] leading-none text-[var(--samora-teal)]">
+              Recuerdo físico
+            </h3>
+
+            <ul className="mt-4 grid gap-3">
+              <WeddingRichCheckItem>
+                <strong className="font-black">Fotobook en pasta dura</strong> 15 × 20
+                cm, con hasta 5 hojas.
+              </WeddingRichCheckItem>
+
+              <WeddingRichCheckItem>
+                <strong className="font-black">Fotografía enmarcada</strong> 30 × 40
+                cm.
+              </WeddingRichCheckItem>
+
+              <WeddingRichCheckItem>
+                <strong className="font-black">Duración de cubrimiento:</strong> 4 a 5
+                horas.
+              </WeddingRichCheckItem>
+            </ul>
+
+            <div className="mt-5">
+              <p className="text-[20px] font-black leading-tight text-[var(--samora-teal)]">
+                Costo
+              </p>
+
+              <p className="proposal-display mt-1 whitespace-nowrap text-[52px] leading-none text-neutral-900">
+                {weddingPackages[1].price}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* 10 - Paquete 3 Esencial */}
       <section className="proposal-sheet overflow-hidden bg-[var(--samora-cream)] text-neutral-950">
@@ -1471,6 +1612,111 @@ function WeddingPackageDeliverables({
   images: string[];
   reverse?: boolean;
 }) {
+  const isMemoria = packageData.name === "Memoria";
+
+  if (isMemoria) {
+    const imageColumn = (
+      <div className="grid h-[calc(100%-56px)] grid-rows-[48%_52%] gap-0 bg-[var(--samora-card)]">
+        <ImageBox
+          src={images[0]}
+          className="h-full w-full"
+          objectPosition="center 52%"
+        />
+
+        <ImageBox
+          src={images[1]}
+          className="h-full w-full"
+          objectPosition="center 68%"
+        />
+      </div>
+    );
+
+    return (
+      <section className="proposal-sheet overflow-hidden bg-[var(--samora-cream)] text-neutral-950">
+        <div className="absolute inset-x-0 bottom-0 h-[56px] bg-[var(--samora-teal)]" />
+
+        <div className="grid h-full grid-cols-[55%_36%] justify-between">
+          <div className="px-[48px] py-[46px]">
+            <div className="min-h-[760px] bg-[var(--samora-card)] px-8 py-9">
+              <h2 className="proposal-display text-[56px] leading-none text-[var(--samora-teal)]">
+                Entregables
+              </h2>
+
+              <ul className="mt-6 grid gap-4">
+                <WeddingRichCheckItem>
+                  <strong className="font-black">
+                    Aproximadamente 300 fotos digitales
+                  </strong>{" "}
+                  editadas en alta resolución.
+                </WeddingRichCheckItem>
+
+                <WeddingRichCheckItem>
+                  <strong className="font-black">Álbum digital</strong> con selección
+                  de las mejores fotografías mediante una plataforma online privada.
+                </WeddingRichCheckItem>
+
+                <WeddingRichCheckItem>
+                  El álbum permitirá{" "}
+                  <strong className="font-black">
+                    visualizar, descargar y compartir
+                  </strong>{" "}
+                  las fotografías desde cualquier dispositivo.
+                </WeddingRichCheckItem>
+
+                <WeddingRichCheckItem>
+                  <strong className="font-black">Video de la boda</strong> de
+                  aproximadamente{" "}
+                  <strong className="font-black">
+                    4 a 5 minutos + clip tipo reel
+                  </strong>{" "}
+                  de 2 a 1 minutos con momentos representativos.
+                </WeddingRichCheckItem>
+              </ul>
+
+              <h3 className="proposal-display mt-9 text-[48px] leading-none text-[var(--samora-teal)]">
+                Recuerdo físico
+              </h3>
+
+              <ul className="mt-6 grid gap-4">
+                <WeddingRichCheckItem>
+                  <strong className="font-black">Photobook en pasta dura</strong>,
+                  tamaño base 15 × 20 cm, hasta 5 hojas, diseño y selección de
+                  fotografías incluido.
+                </WeddingRichCheckItem>
+
+                <WeddingRichCheckItem>
+                  <strong className="font-black">Fotografía enmarcada</strong> 40 ×
+                  50 cm.
+                </WeddingRichCheckItem>
+
+                <WeddingRichCheckItem>
+                  <strong className="font-black">Opciones de personalización</strong>{" "}
+                  con costo adicional según tamaño, número de hojas o referencia de
+                  photobook.
+                </WeddingRichCheckItem>
+
+                <WeddingRichCheckItem>
+                  <strong className="font-black">Duración de cubrimiento:</strong> 5
+                  a 6 horas.
+                </WeddingRichCheckItem>
+              </ul>
+
+              <p className="mt-9 text-[17px] font-black text-[var(--samora-teal)]">
+                Costo
+              </p>
+
+              <p className="proposal-display mt-1 whitespace-nowrap text-[70px] leading-none text-neutral-900">
+                {packageData.price}
+              </p>
+            </div>
+          </div>
+
+          {imageColumn}
+        </div>
+      </section>
+    );
+  }
+
   const imageRows = reverse ? "grid-rows-[30%_70%]" : "grid-rows-[47%_53%]";
 
   const imageColumn = (
@@ -1528,7 +1774,6 @@ function WeddingPackageDeliverables({
     </section>
   );
 }
-
 
 function GeneralProposal({ quote }: { quote: ProposalQuote }) {
   const profile = getGeneralProfile(quote);
