@@ -1386,55 +1386,121 @@ function WeddingProposal({ quote }: { quote: ProposalQuote }) {
       {/* 10 - Paquete 3 Esencial */}
       <section className="proposal-sheet overflow-hidden bg-[var(--samora-cream)] text-neutral-950">
         <div className="absolute inset-x-0 bottom-0 h-[56px] bg-[var(--samora-teal)]" />
-        <div className="grid h-full grid-cols-[52%_1fr]">
-          <div className="px-[48px] py-[50px]">
-            <p className="text-[17px] font-black uppercase tracking-[0.12em] text-[var(--samora-teal)]">
+
+        <div className="grid h-[calc(100%-56px)] grid-cols-[52%_48%]">
+          <div className="px-[46px] pt-[50px]">
+            <p className="text-[18px] font-black uppercase tracking-[0.12em] text-[var(--samora-teal)]">
               {weddingPackages[2].number}
             </p>
-            <h2 className="proposal-display mt-1 text-[78px] leading-[0.86] text-neutral-900">
+
+            <h2 className="proposal-display mt-1 text-[84px] leading-[0.86] text-neutral-900">
               {weddingPackages[2].name}
             </h2>
-            <p className="mt-4 text-[15.2px] leading-[1.45] text-neutral-800">
+
+            <p className="mt-5 max-w-[380px] text-[17px] leading-[1.38] text-neutral-800">
               {weddingPackages[2].intro}
             </p>
 
-            <div className="mt-6 bg-[var(--samora-card)] px-7 py-7">
-              <h3 className="proposal-display text-[39px] leading-none text-[var(--samora-teal)]">
+            <div className="mt-6 bg-[var(--samora-card)] px-8 py-8">
+              <h3 className="proposal-display text-[41px] leading-[0.92] text-[var(--samora-teal)]">
                 Registro fotográfico y videográfico
               </h3>
-              <ul className="mt-5 grid gap-3">
-                {weddingPackages[2].coverage.map((item) => (
-                  <CheckItem key={item}>{item}</CheckItem>
-                ))}
+
+              <ul className="mt-6 grid gap-4">
+                <WeddingFeatureItem title="Cobertura fotográfica y videográfica de la ceremonia">
+                  {" "}
+                  religiosa o simbólica.
+                </WeddingFeatureItem>
+
+                <WeddingFeatureItem title="Recepción">
+                  {" "}
+                  · Momentos importantes de la celebración.
+                </WeddingFeatureItem>
+
+                <WeddingFeatureItem title="Registro aéreo y terrestre">
+                  {" "}
+                  con drone y registro audiovisual desde tierra para complementar la
+                  historia de la celebración.
+                </WeddingFeatureItem>
               </ul>
 
-              <h3 className="proposal-display mt-7 text-[39px] leading-none text-[var(--samora-teal)]">
+              <h3 className="proposal-display mt-9 text-[40px] leading-none text-[var(--samora-teal)]">
                 Entregables
               </h3>
-              <ul className="mt-5 grid gap-3">
-                {weddingPackages[2].deliverables.map((item) => (
-                  <CheckItem key={item}>{item}</CheckItem>
-                ))}
+
+              <ul className="mt-6 grid gap-4">
+                <WeddingFeatureItem title="Aproximadamente 200 fotos digitales">
+                  {" "}
+                  editadas en alta resolución.
+                </WeddingFeatureItem>
+
+                <WeddingFeatureItem title="Álbum digital">
+                  {" "}
+                  con selección de las mejores fotografías mediante una plataforma
+                  online privada.
+                </WeddingFeatureItem>
+
+                <WeddingFeatureItem title="Video de la boda">
+                  {" "}
+                  de aproximadamente{" "}
+                  <strong className="font-black">1 a 2 minutos</strong>, con los
+                  momentos más representativos de la celebración.
+                </WeddingFeatureItem>
               </ul>
             </div>
           </div>
 
-          <div className="grid h-[calc(100%-56px)] grid-rows-[41%_1fr]">
-            <ImageBox
-              src={weddingImages.esencial1}
-              className="h-full w-full"
-              objectPosition="center 58%"
-            />
-            <div className="bg-[var(--samora-card)] px-8 py-9">
-              <h3 className="proposal-display text-[44px] leading-none text-[var(--samora-teal)]">
+          <div className="relative h-full bg-[var(--samora-card)]">
+            <div
+              className="absolute inset-x-0 top-0 overflow-hidden bg-[var(--samora-card)]"
+              style={{
+                height: "585px",
+              }}
+            >
+              <img
+                src={weddingImages.esencial1}
+                alt="Pareja de boda bajo arco floral"
+                style={{
+                  display: "block",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center 46%",
+                }}
+              />
+            </div>
+
+            <div
+              className="absolute inset-x-0 bottom-0 bg-[var(--samora-card)] px-[40px] py-[20px]"
+              style={{
+                top: "585px",
+              }}
+            >
+              <h3 className="proposal-display text-[43px] leading-none text-[var(--samora-teal)]">
                 Recuerdo físico
               </h3>
-              <ul className="mt-6 grid gap-3.5">
-                {weddingPackages[2].physical.map((item) => (
-                  <CheckItem key={item}>{item}</CheckItem>
-                ))}
+
+              <ul className="mt-6 grid gap-4">
+                <WeddingFeatureItem title="MiniBook en pasta dura">
+                  {" "}
+                  10 × 15 cm, con hasta 5 hojas.
+                </WeddingFeatureItem>
+
+                <WeddingFeatureItem title="Fotografía enmarcada">
+                  {" "}
+                  20 × 30 cm.
+                </WeddingFeatureItem>
+
+                <WeddingFeatureItem title="Duración de cubrimiento:">
+                  {" "}
+                  2 a 3 horas.
+                </WeddingFeatureItem>
               </ul>
-              <p className="mt-8 text-[15px] font-black text-[var(--samora-teal)]">Costo</p>
+
+              <p className="mt-7 text-[18px] font-black text-[var(--samora-teal)]">
+                Costo
+              </p>
+
               <p className="proposal-display mt-1 whitespace-nowrap text-[64px] leading-none text-neutral-900">
                 {weddingPackages[2].price}
               </p>
@@ -1446,46 +1512,113 @@ function WeddingProposal({ quote }: { quote: ProposalQuote }) {
       {/* 11 - Condiciones */}
       <section className="proposal-sheet overflow-hidden bg-[var(--samora-cream)] text-neutral-950">
         <div className="absolute inset-x-0 bottom-0 h-[56px] bg-[var(--samora-teal)]" />
-        <div className="grid h-full grid-cols-[36%_1fr]">
-          <div className="h-[calc(100%-56px)] w-full bg-[var(--samora-card)]">
-            <ImageBox
-              src={weddingImages.conditions}
-              className="h-full w-full"
-              objectPosition="42% center"
-              fit="cover"
-            />
-          </div>
-          <div className="px-[54px] py-[54px]">
-            <p className="text-[20px] font-black uppercase tracking-[0.08em] text-[var(--samora-teal)]">
-              Condiciones y
-            </p>
-            <h2 className="proposal-display text-[76px] leading-[0.82] text-neutral-900">
-              Servicios
-              <br />
-              Extra
-            </h2>
 
-            <div className="mt-7 grid gap-5">
-              <NumberedCondition
-                index={1}
-                title="Sesión fotográfica y selección de fotografías"
-                text="El cliente tiene la opción de realizar la sesión fotográfica en un día diferente al evento de recepción, o el mismo día, una hora diferente a la de la recepción, sin costo adicional por subdividir el paquete. El cliente dispondrá de libertad para seleccionar las fotografías para impresión y selección de marcos disponibles."
-              />
-              <NumberedCondition
-                index={2}
-                title="Confirmación y reservas"
-                text="Se requiere confirmación anticipada de al menos el 80% para asegurar la fecha del evento y acordar detalles específicos."
-              />
-              <NumberedCondition
-                index={3}
-                title="Hora adicional"
-                text="La hora adicional será acordada con al menos 1 hora de anticipación y tendrá un costo adicional de $70.000. Cada hora adicional será continua."
-              />
-              <NumberedCondition
-                index={4}
-                title="Transporte y viáticos"
-                text="Los viáticos y la movilización del equipo fotográfico están incluidos en cualquiera de los paquetes mencionados. Si el servicio de preboda se realiza fuera de Guatavita, será asumido por el cliente."
-              />
+        <div
+          className="absolute bottom-[56px] left-0 top-0 w-[38%] bg-[var(--samora-card)]"
+          style={{
+            backgroundImage: `url(${weddingImages.conditions})`,
+            backgroundSize: "cover",
+            backgroundPosition: "62% center",
+            backgroundRepeat: "no-repeat",
+          }}
+          aria-label="Pareja de boda en sesión fotográfica"
+        />
+
+        <div className="absolute bottom-[56px] right-0 top-0 w-[62%] px-[42px] pt-[38px]">
+          <p className="text-[23px] font-black uppercase leading-none tracking-[0.055em] text-[var(--samora-teal)]">
+            Condiciones y
+          </p>
+
+          <h2 className="proposal-display mt-1 text-[84px] leading-[0.82] text-neutral-900">
+            Servicios
+            <br />
+            Extra
+          </h2>
+
+          <div className="mt-9 grid gap-5">
+            <div className="grid grid-cols-[74px_1fr] items-start gap-4 border-b border-[var(--samora-teal)]/55 pb-5">
+              <p className="proposal-display text-[64px] leading-none text-[var(--samora-teal)]">
+                01
+              </p>
+
+              <div>
+                <h3 className="text-[16px] font-black uppercase leading-[1.15] tracking-[0.09em] text-[var(--samora-teal)]">
+                  Sesión fotográfica y selección de fotografías
+                </h3>
+
+                <p className="mt-2.5 text-justify text-[15.2px] leading-[1.3] text-neutral-800">
+                  El cliente tiene la opción de realizar la sesión fotográfica en{" "}
+                  <strong className="font-black">un día diferente al evento de recepción</strong>,
+                  o el mismo día,{" "}
+                  <strong className="font-black">
+                    una hora diferente a la de la recepción, sin costo adicional por
+                    subdividir el paquete.
+                  </strong>{" "}
+                  El cliente dispondrá de total libertad a la hora de seleccionar las
+                  fotografías para la impresión y selección de marcos disponibles para
+                  enmarcación.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-[74px_1fr] items-start gap-4 border-b border-[var(--samora-teal)]/55 pb-5">
+              <p className="proposal-display text-[64px] leading-none text-[var(--samora-teal)]">
+                02
+              </p>
+
+              <div>
+                <h3 className="text-[16px] font-black uppercase leading-[1.15] tracking-[0.09em] text-[var(--samora-teal)]">
+                  Confirmación y reservas
+                </h3>
+
+                <p className="mt-2.5 text-justify text-[15.2px] leading-[1.3] text-neutral-800">
+                  Se requiere confirmación anticipada de{" "}
+                  <strong className="font-black">al menos el 80%</strong> para
+                  asegurar la fecha del evento y acordar detalles específicos.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-[74px_1fr] items-start gap-4 border-b border-[var(--samora-teal)]/55 pb-5">
+              <p className="proposal-display text-[64px] leading-none text-[var(--samora-teal)]">
+                03
+              </p>
+
+              <div>
+                <h3 className="text-[16px] font-black uppercase leading-[1.15] tracking-[0.09em] text-[var(--samora-teal)]">
+                  Hora adicional
+                </h3>
+
+                <p className="mt-2.5 text-justify text-[15.2px] leading-[1.3] text-neutral-800">
+                  La hora adicional será acordada con al menos{" "}
+                  <strong className="font-black">1 hora de anticipación</strong> y
+                  tendrá un{" "}
+                  <strong className="font-black">costo adicional de $70.000.</strong>{" "}
+                  Cada hora adicional será continua.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-[74px_1fr] items-start gap-4">
+              <p className="proposal-display text-[64px] leading-none text-[var(--samora-teal)]">
+                04
+              </p>
+
+              <div>
+                <h3 className="text-[16px] font-black uppercase leading-[1.15] tracking-[0.09em] text-[var(--samora-teal)]">
+                  Transporte y viáticos
+                </h3>
+
+                <p className="mt-2.5 text-justify text-[15.2px] leading-[1.3] text-neutral-800">
+                  Los viáticos y la movilización del equipo fotográfico están
+                  incluidos en cualquiera de los paquetes del servicio mencionados.
+                  No obstante,{" "}
+                  <strong className="font-black">
+                    si el servicio de preboda se realiza fuera de Guatavita, será
+                    asumido por el cliente.
+                  </strong>
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -1493,84 +1626,176 @@ function WeddingProposal({ quote }: { quote: ProposalQuote }) {
 
       {/* 12 - Servicios adicionales */}
       <section className="proposal-sheet overflow-hidden bg-[var(--samora-teal)] text-white">
-        <div className="grid h-full grid-rows-[35%_1fr]">
-          <ImageBox src={weddingImages.extra} className="h-full w-full" objectPosition="center 68%" />
-          <div className="relative grid grid-cols-2 gap-14 px-[70px] py-[62px]">
-            <div>
-              <p className="proposal-display text-[72px] leading-none text-[var(--samora-gold)]">05</p>
-              <h3 className="mt-2 text-[18px] font-black uppercase tracking-[0.11em] text-[var(--samora-gold)]">
-                Servicio adicional · Sesión pre-boda
-              </h3>
-              <p className="mt-6 text-[15px] leading-[1.48] text-white/90">
-                Sesión fotográfica realizada días antes de la boda en locaciones, ideal para crear contenido para invitaciones, redes sociales y otros elementos de la celebración.
+        <div className="relative h-full px-[58px] pb-[54px] pt-[34px]">
+          <div className="h-[395px] w-full overflow-hidden bg-black/10">
+            <img
+              src={weddingImages.extra}
+              alt="Salida de boda"
+              className="block w-full"
+              style={{
+                height: "auto",
+                minHeight: "100%",
+                transform: "translateY(-150px) scale(1.1)",
+                transformOrigin: "center top",
+              }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-[76px] px-[10px] pt-[28px]">
+            <div className="grid grid-cols-[68px_1fr] gap-4">
+              <p className="proposal-display text-[63px] leading-none text-[var(--samora-gold)]">
+                05
               </p>
-              <p className="mt-7 text-[14.5px] leading-[1.48] text-white/90">
-                <strong>Duración:</strong> 1 a 2 horas.<br />
-                <strong>Entrega digital:</strong> 15 a 20 fotografías digitales editadas en alta resolución.<br />
-                <strong>Reel de Pre-Boda:</strong> video tipo reel de 1 a 2 minutos.<br />
-                <strong>Tiempo de entrega:</strong> aproximadamente 15 días hábiles.<br />
-                <strong>Valor adicional:</strong> $500.000.
-              </p>
+
+              <div>
+                <h3 className="max-w-[310px] text-[18px] font-black uppercase leading-[1.12] tracking-[0.105em] text-[var(--samora-gold)]">
+                  Servicio adicional · Sesión pre-boda
+                </h3>
+
+                <p className="mt-4 max-w-[305px] text-justify text-[15.5px] leading-[1.38] text-white/92">
+                  Sesión fotográfica realizada días antes de la boda en locaciones, ideal
+                  para crear contenido para invitaciones, redes sociales y otros elementos
+                  de la celebración.
+                </p>
+
+                <div className="mt-5 max-w-[305px] space-y-1.5 text-[15.5px] leading-[1.34] text-white/92">
+                  <p>
+                    <strong className="font-black">Duración:</strong> 1 a 2 horas.
+                  </p>
+
+                  <p>
+                    <strong className="font-black">Entrega digital:</strong> 15 a 20
+                    fotografías digitales editadas en alta resolución.
+                  </p>
+
+                  <p>
+                    <strong className="font-black">Reel de Pre-Boda:</strong> video tipo
+                    reel de 1 a 2 minutos.
+                  </p>
+
+                  <p>
+                    <strong className="font-black">Tiempo de entrega:</strong>{" "}
+                    aproximadamente 15 días hábiles.
+                  </p>
+
+                  <p>
+                    <strong className="font-black">Valor adicional:</strong> $500.000.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <p className="proposal-display text-[72px] leading-none text-[var(--samora-gold)]">06</p>
-              <h3 className="mt-2 text-[18px] font-black uppercase tracking-[0.11em] text-[var(--samora-gold)]">
-                Travesía mágica en velero · Servicio adicional
-              </h3>
-              <p className="mt-6 text-[15px] leading-[1.48] text-white/90">
-                Sesión fotográfica de 1 hora a bordo de un velero. Puede realizarse en la sesión de boda o preboda, incluyendo ingreso al club privado y cubrimiento fotográfico de la experiencia.
+            <div className="grid grid-cols-[68px_1fr] gap-4">
+              <p className="proposal-display text-[63px] leading-none text-[var(--samora-gold)]">
+                06
               </p>
-              <p className="mt-7 text-[14.5px] leading-[1.48] text-white/90">
-                <strong>Duración:</strong> 1 hora.<br />
-                <strong>Incluye:</strong> ingreso al club privado.<br />
-                <strong>Máximo:</strong> 3 personas.<br />
-                <strong>Valor adicional:</strong> $550.000.
-              </p>
+
+              <div>
+                <h3 className="max-w-[330px] text-[18px] font-black uppercase leading-[1.12] tracking-[0.105em] text-[var(--samora-gold)]">
+                  Travesía mágica en velero · Servicio adicional
+                </h3>
+
+                <p className="mt-4 max-w-[305px] text-justify text-[15.5px] leading-[1.38] text-white/92">
+                  Sesión fotográfica de 1 hora a bordo de un velero. Puede realizarse en
+                  la sesión de boda o preboda, incluyendo ingreso al club privado y
+                  cubrimiento fotográfico de la experiencia.
+                </p>
+
+                <div className="mt-5 max-w-[305px] space-y-1.5 text-[15.5px] leading-[1.34] text-white/92">
+                  <p>
+                    <strong className="font-black">Duración:</strong> 1 hora.
+                  </p>
+
+                  <p>
+                    <strong className="font-black">Incluye:</strong> ingreso al club
+                    privado.
+                  </p>
+
+                  <p>
+                    <strong className="font-black">Máximo:</strong> 3 personas.
+                  </p>
+
+                  <p>
+                    <strong className="font-black">Valor adicional:</strong> $550.000.
+                  </p>
+                </div>
+              </div>
             </div>
-            <DecorativeStar className="absolute inset-x-8 bottom-[32px]" />
           </div>
+
+          <DecorativeStar className="absolute bottom-[28px] left-[34px] right-[34px]" />
         </div>
       </section>
 
       {/* 13 - Reunión / cierre */}
       <section className="proposal-sheet overflow-hidden bg-[var(--samora-cream)] text-neutral-950">
-        <div className="grid h-full grid-rows-[29%_1fr]">
-          <ImageBox src={weddingImages.closing1} className="h-full w-full" objectPosition="center 70%" />
-          <div className="grid grid-cols-[1fr_34%] gap-7 px-[44px] py-[42px]">
+        <div className="grid h-full grid-rows-[280px_1fr]">
+          <div className="h-full w-full overflow-hidden bg-[var(--samora-card)]">
+            <img
+              src={weddingImages.closing1}
+              alt="Pareja de boda en paisaje natural"
+              className="block w-full"
+              style={{
+                height: "auto",
+                minHeight: "100%",
+                transform: "translateY(-230px) scale(1.08)",
+                transformOrigin: "center top",
+              }}
+            />
+          </div>
+
+          <div className="grid grid-cols-[1fr_34%] gap-7 px-[44px] py-[36px]">
             <div>
-              <div className="grid grid-cols-[72px_1fr] gap-4 border-b border-neutral-300 pb-4">
-                <p className="proposal-display text-[62px] leading-none text-[var(--samora-teal)]">07</p>
+              <div className="grid grid-cols-[78px_1fr] gap-4 border-b border-neutral-300 pb-4">
+                <p className="proposal-display text-[66px] leading-none text-[var(--samora-teal)]">
+                  07
+                </p>
+
                 <div>
-                  <h2 className="text-[17px] font-black uppercase tracking-[0.1em] text-[var(--samora-teal)]">
+                  <h2 className="text-[20px] font-black uppercase leading-[1.08] tracking-[0.1em] text-[var(--samora-teal)]">
                     Reunión y coordinación del servicio
                   </h2>
-                  <p className="mt-2 text-[13px] leading-[1.38] text-neutral-800">
-                    Para garantizar que cada detalle quede claro, el equipo de Samora Estudio coordinará la reunión o canal de revisión definido con la pareja antes de la confirmación final del servicio.
+
+                  <p className="mt-2.5 text-[15px] leading-[1.42] text-neutral-800">
+                    Para garantizar que cada detalle quede claro, el equipo de Samora
+                    Estudio coordinará la reunión o canal de revisión definido con la
+                    pareja antes de la confirmación final del servicio.
                   </p>
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-1.5 rounded-2xl border border-[var(--samora-teal)]/20 bg-white/45 p-4 text-[12.5px] leading-[1.45] text-neutral-800">
-                <p><strong>Tipo de reunión:</strong> {meeting.type}</p>
-                <p><strong>Estado:</strong> {meeting.status}</p>
-                <p><strong>Fecha:</strong> {meeting.date}</p>
-                <p><strong>Hora:</strong> {meeting.time}</p>
-                <p><strong>Lugar / enlace:</strong> {meeting.location}</p>
+              <div className="mt-5 grid gap-1.5 rounded-2xl border border-[var(--samora-teal)]/20 bg-white/45 p-4 text-[14px] leading-[1.5] text-neutral-800">
+                <p>
+                  <strong>Tipo de reunión:</strong> {meeting.type}
+                </p>
+                <p>
+                  <strong>Estado:</strong> {meeting.status}
+                </p>
+                <p>
+                  <strong>Fecha:</strong> {meeting.date}
+                </p>
+                <p>
+                  <strong>Hora:</strong> {meeting.time}
+                </p>
+                <p>
+                  <strong>Lugar / enlace:</strong> {meeting.location}
+                </p>
               </div>
 
               <div className="mt-5 border-b border-neutral-800 pb-2.5">
-                <h3 className="text-[16px] font-black uppercase tracking-[0.08em] text-neutral-900">
+                <h3 className="text-[18px] font-black uppercase tracking-[0.08em] text-neutral-900">
                   Servicio exclusivo de fotografía
                 </h3>
               </div>
 
               <div className="mt-5">
-                <h3 className="text-[15px] font-black uppercase tracking-[0.1em] text-[var(--samora-teal)]">
+                <h3 className="text-[17px] font-black uppercase leading-[1.18] tracking-[0.1em] text-[var(--samora-teal)]">
                   Portafolio de bodas y eventos especiales
                 </h3>
-                <p className="mt-2 text-[12px] leading-[1.38] text-neutral-700">
-                  Consulta nuestro portafolio completo en la página web de Samora Estudio:
+
+                <p className="mt-2.5 text-[13.6px] leading-[1.42] text-neutral-700">
+                  Consulta nuestro portafolio completo en la página web de Samora
+                  Estudio:
                   <br />
                   <a
                     href={getWeddingPortfolioUrl()}
@@ -1581,23 +1806,40 @@ function WeddingProposal({ quote }: { quote: ProposalQuote }) {
                 </p>
               </div>
 
-              <p className="mt-5 text-[12.3px] leading-[1.42] text-neutral-700">
-                Esperamos que esta propuesta cumpla con tus expectativas. Estamos a tu disposición para cualquier consulta o ajuste que desees hacer. Será un honor ser parte de tu día especial y capturar esos momentos que recordarás para siempre.
+              <p className="mt-5 max-w-[590px] text-[13.8px] leading-[1.45] text-neutral-700">
+                Esperamos que esta propuesta cumpla con tus expectativas. Estamos a tu
+                disposición para cualquier consulta o ajuste que desees hacer. Será un
+                honor ser parte de tu día especial y capturar esos momentos que
+                recordarás para siempre.
               </p>
 
-              <p className="mt-4 text-[12.3px] leading-[1.35] text-neutral-700">Atentamente,</p>
-              <p className="proposal-script mt-1 text-[26px] text-neutral-900">
+              <p className="mt-4 text-[13.8px] leading-[1.35] text-neutral-700">
+                Atentamente,
+              </p>
+
+              <p className="proposal-script mt-1 text-[30px] leading-none text-neutral-900">
                 Equipo de Samora Estudio Creativo
               </p>
-              <p className="mt-2 text-[9.5px] uppercase tracking-[0.18em] text-neutral-500">
+
+              <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-neutral-500">
                 Código: {quote.quote_code}
               </p>
             </div>
 
-            <ImageBox src={weddingImages.closing2} className="h-[520px] w-full self-start bg-[var(--samora-card)]" objectPosition="center 54%" />
+            <div
+              className="h-[520px] w-full self-start overflow-hidden bg-[var(--samora-card)]"
+              style={{
+                backgroundImage: `url(${weddingImages.closing2})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center 58%",
+                backgroundRepeat: "no-repeat",
+              }}
+              aria-label="Pareja de boda en bosque"
+            />
           </div>
         </div>
       </section>
+
     </ProposalShell>
   );
 }
