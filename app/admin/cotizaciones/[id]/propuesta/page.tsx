@@ -1388,25 +1388,25 @@ function WeddingProposal({ quote }: { quote: ProposalQuote }) {
         <div className="absolute inset-x-0 bottom-0 h-[56px] bg-[var(--samora-teal)]" />
 
         <div className="grid h-[calc(100%-56px)] grid-cols-[52%_48%]">
-          <div className="px-[46px] pt-[50px]">
+          <div className="px-[46px] pt-[38px]">
             <p className="text-[18px] font-black uppercase tracking-[0.12em] text-[var(--samora-teal)]">
               {weddingPackages[2].number}
             </p>
 
-            <h2 className="proposal-display mt-1 text-[84px] leading-[0.86] text-neutral-900">
+            <h2 className="proposal-display mt-1 text-[70px] leading-[0.86] text-neutral-900">
               {weddingPackages[2].name}
             </h2>
 
-            <p className="mt-5 max-w-[380px] text-[17px] leading-[1.38] text-neutral-800">
+            <p className="mt-3 max-w-[370px] text-[15px] leading-[1.3] text-neutral-800">
               {weddingPackages[2].intro}
             </p>
 
-            <div className="mt-6 bg-[var(--samora-card)] px-8 py-8">
-              <h3 className="proposal-display text-[41px] leading-[0.92] text-[var(--samora-teal)]">
+            <div className="mt-4 bg-[var(--samora-card)] px-7 pb-6 pt-6">
+              <h3 className="proposal-display text-[35px] leading-[0.92] text-[var(--samora-teal)]">
                 Registro fotográfico y videográfico
               </h3>
 
-              <ul className="mt-6 grid gap-4">
+              <ul className="mt-4 grid gap-3">
                 <WeddingFeatureItem title="Cobertura fotográfica y videográfica de la ceremonia">
                   {" "}
                   religiosa o simbólica.
@@ -1424,11 +1424,11 @@ function WeddingProposal({ quote }: { quote: ProposalQuote }) {
                 </WeddingFeatureItem>
               </ul>
 
-              <h3 className="proposal-display mt-9 text-[40px] leading-none text-[var(--samora-teal)]">
+              <h3 className="proposal-display mt-6 text-[34px] leading-none text-[var(--samora-teal)]">
                 Entregables
               </h3>
 
-              <ul className="mt-6 grid gap-4">
+              <ul className="mt-4 grid gap-3">
                 <WeddingFeatureItem title="Aproximadamente 200 fotos digitales">
                   {" "}
                   editadas en alta resolución.
@@ -1454,7 +1454,7 @@ function WeddingProposal({ quote }: { quote: ProposalQuote }) {
             <div
               className="absolute inset-x-0 top-0 overflow-hidden bg-[var(--samora-card)]"
               style={{
-                height: "585px",
+                height: "535px",
               }}
             >
               <img
@@ -1471,16 +1471,16 @@ function WeddingProposal({ quote }: { quote: ProposalQuote }) {
             </div>
 
             <div
-              className="absolute inset-x-0 bottom-0 bg-[var(--samora-card)] px-[40px] py-[20px]"
+              className="absolute inset-x-0 bottom-0 bg-[var(--samora-card)] px-[38px] py-[18px]"
               style={{
-                top: "585px",
+                top: "535px",
               }}
             >
-              <h3 className="proposal-display text-[43px] leading-none text-[var(--samora-teal)]">
+              <h3 className="proposal-display text-[38px] leading-none text-[var(--samora-teal)]">
                 Recuerdo físico
               </h3>
 
-              <ul className="mt-6 grid gap-4">
+              <ul className="mt-5 grid gap-3.5">
                 <WeddingFeatureItem title="MiniBook en pasta dura">
                   {" "}
                   10 × 15 cm, con hasta 5 hojas.
@@ -1497,11 +1497,11 @@ function WeddingProposal({ quote }: { quote: ProposalQuote }) {
                 </WeddingFeatureItem>
               </ul>
 
-              <p className="mt-7 text-[18px] font-black text-[var(--samora-teal)]">
+              <p className="mt-5 text-[16px] font-black text-[var(--samora-teal)]">
                 Costo
               </p>
 
-              <p className="proposal-display mt-1 whitespace-nowrap text-[64px] leading-none text-neutral-900">
+              <p className="proposal-display mt-1 whitespace-nowrap text-[50px] leading-none text-neutral-900">
                 {weddingPackages[2].price}
               </p>
             </div>
@@ -1877,14 +1877,14 @@ function WeddingPackageDeliverables({
       <section className="proposal-sheet overflow-hidden bg-[var(--samora-cream)] text-neutral-950">
         <div className="absolute inset-x-0 bottom-0 h-[56px] bg-[var(--samora-teal)]" />
 
-        <div className="grid h-full grid-cols-[55%_36%] justify-between">
-          <div className="px-[48px] py-[46px]">
-            <div className="min-h-[760px] bg-[var(--samora-card)] px-8 py-9">
-              <h2 className="proposal-display text-[56px] leading-none text-[var(--samora-teal)]">
+        <div className="grid h-[calc(100%-56px)] grid-cols-[54%_36%] justify-between">
+          <div className="px-[46px] pb-[88px] pt-[38px]">
+            <div className="bg-[var(--samora-card)] px-8 pb-8 pt-8">
+              <h2 className="proposal-display text-[50px] leading-none text-[var(--samora-teal)]">
                 Entregables
               </h2>
 
-              <ul className="mt-6 grid gap-4">
+              <ul className="mt-4 grid gap-3">
                 <WeddingRichCheckItem>
                   <strong className="font-black">
                     Aproximadamente 300 fotos digitales
@@ -1915,11 +1915,11 @@ function WeddingPackageDeliverables({
                 </WeddingRichCheckItem>
               </ul>
 
-              <h3 className="proposal-display mt-9 text-[48px] leading-none text-[var(--samora-teal)]">
+              <h3 className="proposal-display mt-6 text-[42px] leading-none text-[var(--samora-teal)]">
                 Recuerdo físico
               </h3>
 
-              <ul className="mt-6 grid gap-4">
+              <ul className="mt-4 grid gap-3">
                 <WeddingRichCheckItem>
                   <strong className="font-black">Photobook en pasta dura</strong>,
                   tamaño base 15 × 20 cm, hasta 5 hojas, diseño y selección de
@@ -1943,11 +1943,11 @@ function WeddingPackageDeliverables({
                 </WeddingRichCheckItem>
               </ul>
 
-              <p className="mt-9 text-[17px] font-black text-[var(--samora-teal)]">
+              <p className="mt-5 text-[15.5px] font-black text-[var(--samora-teal)]">
                 Costo
               </p>
 
-              <p className="proposal-display mt-1 whitespace-nowrap text-[70px] leading-none text-neutral-900">
+              <p className="proposal-display mt-1 whitespace-nowrap text-[54px] leading-none text-neutral-900">
                 {packageData.price}
               </p>
             </div>
@@ -2319,14 +2319,20 @@ function ProposalStyles() {
         body {
           width: 8.5in !important;
           min-width: 8.5in !important;
+          height: auto !important;
           margin: 0 !important;
           padding: 0 !important;
+          overflow: visible !important;
           background: white !important;
         }
 
         main {
+          width: 8.5in !important;
+          min-width: 8.5in !important;
           margin: 0 !important;
           padding: 0 !important;
+          overflow: visible !important;
+          background: white !important;
         }
 
         .no-print {
@@ -2335,16 +2341,23 @@ function ProposalStyles() {
 
         .proposal-root {
           display: block !important;
+          width: 960px !important;
+          max-width: 960px !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          gap: 0 !important;
+          zoom: 0.85;
         }
 
         .proposal-sheet {
-          width: 8.5in !important;
-          height: 8.5in !important;
-          min-height: 8.5in !important;
-          max-height: 8.5in !important;
+          width: 960px !important;
+          height: 960px !important;
+          min-height: 960px !important;
+          max-height: 960px !important;
           margin: 0 !important;
           border-radius: 0 !important;
           box-shadow: none !important;
+          overflow: hidden !important;
           page-break-inside: avoid;
           break-inside: avoid;
           page-break-after: always;

@@ -1712,6 +1712,12 @@ function QuoteDetail({
 
       <SchedulePanel values={scheduleValues} quote={quote} saving={saving} onChange={onScheduleValuesChange} onSave={() => onSaveSchedule()} onSaveAndApprove={() => onSaveSchedule({ approve: true })} />
 
+      <ProposalFinalPanel
+        quote={quote}
+        onCopyWhatsappMessage={() => onCopyWhatsappMessage(quote)}
+        onOpenClientFinalQuoteWhatsapp={() => onOpenClientFinalQuoteWhatsapp(quote)}
+      />
+
       <ReservationPanel
         values={reservationValues}
         quote={quote}
@@ -1719,88 +1725,271 @@ function QuoteDetail({
         onChange={onReservationValuesChange}
         onSave={() => onSaveReservation()}
         onConfirm={() => onSaveReservation({ confirm: true })}
+      />
+
+      <ReservationReceiptPanel
+        quote={quote}
+        onSendReceiptMessage={() => onOpenClientQuickWhatsapp(quote, "reservation_receipt")}
+      />
+
+      <ServiceClosePanel
+        quote={quote}
+        saving={saving}
         onComplete={() => onUpdateStatus(quote, "completed")}
         onCancel={() => onUpdateStatus(quote, "cancelled")}
+        onUpdateStatus={(status) => onUpdateStatus(quote, status)}
       />
 
       <QuoteWhatsappQuickActions
         quote={quote}
         onOpenMessage={(type) => onOpenClientQuickWhatsapp(quote, type)}
       />
+    </div>
+  );
+}
 
-      <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-5">
-        <p className="text-xs uppercase tracking-[0.25em] text-white/35">Estado de la solicitud</p>
+function ProposalFinalPanel({
+  quote,
+  onCopyWhatsappMessage,
+  onOpenClientFinalQuoteWhatsapp,
+}: {
+  quote: QuoteRequest;
+  onCopyWhatsappMessage: () => void;
+  onOpenClientFinalQuoteWhatsapp: () => void;
+}) {
+  return (
+    <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-5">
+      <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-white/35">
+            Propuesta final
+          </p>
+
+          <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em]">
+            Propuesta final para el cliente
+          </h3>
+
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/40">
+            Después de definir los detalles por WhatsApp o reunión, genera el
+            PDF de propuesta y envíalo al cliente para aprobación. La constancia
+            de reserva se genera después de confirmar el abono o la reserva.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-blue-400/20 bg-blue-400/10 px-4 py-3 text-sm text-blue-100/80">
+          Paso 3
+        </div>
+      </div>
+
+      {!quote.final_price_cop && (
+        <p className="mt-4 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-3 text-xs leading-5 text-yellow-100/80">
+          Define y guarda el valor final antes de enviar la propuesta por
+          WhatsApp.
+        </p>
+      )}
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={onCopyWhatsappMessage}
+          className="rounded-full border border-white/15 px-5 py-3 text-sm text-white/70 transition hover:border-white/35 hover:text-white"
+        >
+          Copiar mensaje interno
+        </button>
+
+        <Link
+          href={`/admin/cotizaciones/${quote.id}/propuesta`}
+          className="rounded-full border border-white/15 bg-white/[0.03] px-5 py-3 text-center text-sm text-white/80 transition hover:border-white/35 hover:bg-white hover:text-black"
+        >
+          Ver / generar propuesta PDF
+        </Link>
+
+        <button
+          type="button"
+          onClick={onOpenClientFinalQuoteWhatsapp}
+          className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2"
+        >
+          Enviar propuesta por WhatsApp y adjuntar PDF
+        </button>
+      </div>
+
+      <button
+        type="button"
+        disabled
+        className="mt-3 w-full cursor-not-allowed rounded-full border border-white/10 px-5 py-3 text-sm text-white/25"
+        title="Se activará cuando integremos Google Calendar"
+      >
+        Crear evento en Google Calendar
+      </button>
+
+      <p className="mt-3 text-xs leading-5 text-white/35">
+        La propuesta final debe enviarse únicamente cuando el valor, los
+        entregables, las condiciones y el PDF estén revisados por el equipo.
+      </p>
+    </div>
+  );
+}
+
+function ReservationReceiptPanel({
+  quote,
+  onSendReceiptMessage,
+}: {
+  quote: QuoteRequest;
+  onSendReceiptMessage: () => void;
+}) {
+  const canGenerateReceipt =
+    quote.status === "reserved" ||
+    quote.reservation_status === "reserved" ||
+    !!quote.reservation_confirmed_at;
+
+  return (
+    <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-5">
+      <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-white/35">
+            Constancia de reserva
+          </p>
+
+          <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em]">
+            Documento final de reserva
+          </h3>
+
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/40">
+            Genera esta constancia solo después de confirmar la reserva. Debe
+            incluir los datos definitivos del servicio: fecha, hora, lugar,
+            paquete, valor final, abono registrado y saldo pendiente.
+          </p>
+        </div>
+
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm ${
+            canGenerateReceipt
+              ? "border-cyan-400/20 bg-cyan-400/10 text-cyan-100/80"
+              : "border-yellow-400/20 bg-yellow-400/10 text-yellow-100/80"
+          }`}
+        >
+          {canGenerateReceipt ? "Lista para generar" : "Pendiente de reserva"}
+        </div>
+      </div>
+
+      {!canGenerateReceipt && (
+        <p className="mt-4 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-3 text-xs leading-5 text-yellow-100/80">
+          Primero confirma la reserva o el abono. Así evitas generar una
+          constancia con datos incompletos.
+        </p>
+      )}
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        {canGenerateReceipt ? (
+          <Link
+            href={`/admin/cotizaciones/${quote.id}/reserva`}
+            target="_blank"
+            className="rounded-full border border-white/15 bg-white/[0.03] px-5 py-3 text-center text-sm text-white/80 transition hover:border-white/35 hover:bg-white hover:text-black"
+          >
+            Ver / generar constancia de reserva
+          </Link>
+        ) : (
+          <span className="rounded-full border border-white/10 bg-white/[0.03] px-5 py-3 text-center text-sm text-white/25">
+            Constancia pendiente de reserva
+          </span>
+        )}
+
+        <button
+          type="button"
+          disabled={!canGenerateReceipt}
+          onClick={onSendReceiptMessage}
+          className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-35"
+        >
+          Enviar mensaje y adjuntar constancia
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ServiceClosePanel({
+  quote,
+  saving,
+  onComplete,
+  onCancel,
+  onUpdateStatus,
+}: {
+  quote: QuoteRequest;
+  saving: boolean;
+  onComplete: () => void;
+  onCancel: () => void;
+  onUpdateStatus: (status: QuoteStatus) => void;
+}) {
+  return (
+    <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-5">
+      <div>
+        <p className="text-xs uppercase tracking-[0.25em] text-white/35">
+          Cierre del servicio
+        </p>
+
+        <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em]">
+          Finalización o ajuste manual del estado
+        </h3>
+
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-white/40">
+          Usa estas acciones cuando el servicio haya terminado, cuando el cliente
+          cancele o cuando necesites corregir manualmente el estado de la
+          solicitud.
+        </p>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          disabled={saving}
+          onClick={onComplete}
+          className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-5 py-3 text-sm text-emerald-100/80 transition hover:border-emerald-300/45 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Finalizar servicio
+        </button>
+
+        <button
+          type="button"
+          disabled={saving}
+          onClick={onCancel}
+          className="rounded-full border border-red-400/25 bg-red-400/10 px-5 py-3 text-sm text-red-100/80 transition hover:border-red-300/45 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Cancelar solicitud
+        </button>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <p className="text-xs uppercase tracking-[0.25em] text-white/35">
+          Estado de la solicitud
+        </p>
+
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
           {statusOptions.map((status) => {
             const active = quote.status === status.value;
+
             return (
-              <button key={status.value} type="button" disabled={saving} onClick={() => onUpdateStatus(quote, status.value)} className={`rounded-full border px-4 py-2 text-xs transition disabled:cursor-not-allowed disabled:opacity-60 ${active ? "border-white bg-white text-black" : "border-white/10 bg-white/[0.03] text-white/50 hover:border-white/30 hover:text-white"}`}>
+              <button
+                key={status.value}
+                type="button"
+                disabled={saving}
+                onClick={() => onUpdateStatus(status.value)}
+                className={`rounded-full border px-4 py-2 text-xs transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                  active
+                    ? "border-white bg-white text-black"
+                    : "border-white/10 bg-white/[0.03] text-white/50 hover:border-white/30 hover:text-white"
+                }`}
+              >
                 {status.label}
               </button>
             );
           })}
         </div>
       </div>
-
-      <div className="mt-6 rounded-2xl border border-white/10 bg-black/35 p-5">
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-white/35">
-            Acciones finales
-          </p>
-
-          <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em]">
-            Envío y cierre de la cotización
-          </h3>
-
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/40">
-            Primero genera y guarda el PDF de la propuesta. Luego abre WhatsApp con
-            el mensaje final y adjunta manualmente el archivo antes de enviarlo
-            al cliente.
-          </p>
-        </div>
-
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => onCopyWhatsappMessage(quote)}
-            className="rounded-full border border-white/15 px-5 py-3 text-sm text-white/70 transition hover:border-white/35 hover:text-white"
-          >
-            Copiar mensaje interno
-          </button>
-
-          <Link
-            href={`/admin/cotizaciones/${quote.id}/propuesta`}
-            className="rounded-full border border-white/15 bg-white/[0.03] px-5 py-3 text-center text-sm text-white/80 transition hover:border-white/35 hover:bg-white hover:text-black"
-          >
-            Ver / generar propuesta PDF
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => onOpenClientFinalQuoteWhatsapp(quote)}
-            className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2"
-          >
-            Enviar mensaje final y adjuntar PDF
-          </button>
-        </div>
-
-        <button
-          type="button"
-          disabled
-          className="mt-3 w-full cursor-not-allowed rounded-full border border-white/10 px-5 py-3 text-sm text-white/25"
-          title="Se activará cuando integremos Google Calendar"
-        >
-          Crear evento en Google Calendar
-        </button>
-
-        <p className="mt-3 text-xs leading-5 text-white/35">
-          La propuesta final debe enviarse únicamente cuando el valor, los
-          entregables, las condiciones y el PDF estén revisados por el equipo.
-        </p>
-      </div>
     </div>
   );
 }
+
+
 
 
 function QuoteWhatsappQuickActions({
@@ -1836,11 +2025,6 @@ function QuoteWhatsappQuickActions({
       description: "Envía detalles antes del evento o sesión.",
     },
     {
-      type: "reservation_receipt",
-      label: "Enviar constancia",
-      description: "Mensaje para adjuntar la constancia PDF.",
-    },
-    {
       type: "service_completed",
       label: "Servicio finalizado",
       description: "Agradece y cierra el servicio.",
@@ -1860,8 +2044,8 @@ function QuoteWhatsappQuickActions({
       </h3>
 
       <p className="mt-2 max-w-2xl text-sm leading-6 text-white/40">
-        Abre WhatsApp con textos listos según el momento de la cotización. El
-        equipo debe revisar el mensaje antes de enviarlo.
+        Abre WhatsApp con textos de apoyo para seguimiento. La propuesta y la
+        constancia tienen sus propios bloques arriba para conservar el flujo.
       </p>
 
       {!hasPhone && (
@@ -2072,7 +2256,7 @@ function SchedulePanel({ values, quote, saving, onChange, onSave, onSaveAndAppro
 }
 
 
-function ReservationPanel({ values, quote, saving, onChange, onSave, onConfirm, onComplete, onCancel }: { values: ReservationValues; quote: QuoteRequest; saving: boolean; onChange: (values: ReservationValues) => void; onSave: () => void; onConfirm: () => void; onComplete: () => void; onCancel: () => void }) {
+function ReservationPanel({ values, quote, saving, onChange, onSave, onConfirm }: { values: ReservationValues; quote: QuoteRequest; saving: boolean; onChange: (values: ReservationValues) => void; onSave: () => void; onConfirm: () => void }) {
   function updateField<Key extends keyof ReservationValues>(key: Key, value: ReservationValues[Key]) {
     onChange({ ...values, [key]: value });
   }
@@ -2166,24 +2350,6 @@ function ReservationPanel({ values, quote, saving, onChange, onSave, onConfirm, 
         <button type="button" disabled={saving} onClick={onConfirm} className="rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60">
           {saving ? "Guardando..." : "Confirmar reserva"}
         </button>
-
-        <button type="button" disabled={saving} onClick={onComplete} className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-5 py-3 text-sm text-emerald-100/80 transition hover:border-emerald-300/45 disabled:cursor-not-allowed disabled:opacity-60">
-          Finalizar servicio
-        </button>
-
-        <button type="button" disabled={saving} onClick={onCancel} className="rounded-full border border-red-400/25 bg-red-400/10 px-5 py-3 text-sm text-red-100/80 transition hover:border-red-300/45 disabled:cursor-not-allowed disabled:opacity-60">
-          Cancelar solicitud
-        </button>
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <Link
-          href={`/admin/cotizaciones/${quote.id}/reserva`}
-          target="_blank"
-          className="rounded-full border border-white/15 bg-white/[0.03] px-5 py-3 text-center text-sm text-white/80 transition hover:border-white/35 hover:bg-white hover:text-black sm:col-span-2"
-        >
-          Ver / generar constancia de reserva
-        </Link>
       </div>
 
       <p className="mt-3 text-xs leading-5 text-white/35">
