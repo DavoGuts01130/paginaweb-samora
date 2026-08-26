@@ -886,7 +886,7 @@ function ProposalShell({ quote, children }: { quote: ProposalQuote; children: Re
 
           <div className="flex flex-wrap gap-3">
             <Link
-              href="/admin/cotizaciones"
+              href={`/admin/cotizaciones/${quote.id}`}
               className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm text-white/70 transition hover:border-white/35 hover:bg-white hover:text-black"
             >
               Volver a cotizaciones

@@ -1012,7 +1012,13 @@ function buildQuoteQuickWhatsappMessage(
   ].join("\n");
 }
 
-export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: QuoteRequest[] }) {
+export default function QuoteRequestsAdmin({
+  initialQuotes,
+  detailOnly = false,
+}: {
+  initialQuotes: QuoteRequest[];
+  detailOnly?: boolean;
+}) {
   const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
   const focusQuoteId = searchParams.get("focus");
@@ -1472,6 +1478,106 @@ export default function QuoteRequestsAdmin({ initialQuotes }: { initialQuotes: Q
 
     window.open(link, "_blank", "noopener,noreferrer");
     setMessage("WhatsApp abierto con el mensaje rápido. Revisa antes de enviarlo.");
+  }
+
+  if (detailOnly) {
+    return (
+      <div>
+        {message && (
+          <p className="mb-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-5 text-white/55">
+            {message}
+          </p>
+        )}
+
+        <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+          {selectedQuote &&
+          editValues &&
+          meetingValues &&
+          scheduleValues &&
+          reservationValues ? (
+            <QuoteDetail
+              quote={selectedQuote}
+              editMode={editMode}
+              editValues={editValues}
+              meetingValues={meetingValues}
+              scheduleValues={scheduleValues}
+              reservationValues={reservationValues}
+              saving={savingId === selectedQuote.id}
+              onEditValuesChange={setEditValues}
+              onMeetingValuesChange={setMeetingValues}
+              onScheduleValuesChange={setScheduleValues}
+              onReservationValuesChange={setReservationValues}
+              onToggleEdit={() => setEditMode((current) => !current)}
+              onCancelEdit={() => {
+                setEditValues(createEditValues(selectedQuote));
+                setEditMode(false);
+              }}
+              onSaveChanges={saveQuoteChanges}
+              onSaveMeeting={saveMeeting}
+              onSaveSchedule={saveSchedule}
+              onSaveReservation={saveReservation}
+              onUpdateStatus={updateStatus}
+              onCopyWhatsappMessage={copyWhatsappMessage}
+              onOpenClientMeetingWhatsapp={openClientMeetingWhatsapp}
+              onOpenClientFinalQuoteWhatsapp={openClientFinalQuoteWhatsapp}
+              onOpenClientQuickWhatsapp={openClientQuickWhatsapp}
+              linkedCustomerFollowup={crmFollowups[selectedQuote.id] ?? null}
+            />
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-sm text-white/45">
+              No fue posible cargar el detalle de esta cotización.
+            </div>
+          )}
+        </div>
+
+        <style jsx global>{`
+          .admin-input {
+            width: 100%;
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 0.85rem 1rem;
+            color: white;
+            outline: none;
+          }
+
+          .admin-input:focus {
+            border-color: rgba(255, 255, 255, 0.38);
+          }
+
+          .admin-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+          }
+
+          .admin-input {
+            color-scheme: dark;
+          }
+
+          .admin-input option,
+          .admin-select option {
+            color: black;
+            background: white;
+          }
+
+          .admin-input[type="date"],
+          .admin-input[type="time"] {
+            color-scheme: dark;
+          }
+
+          .admin-input[type="date"]::-webkit-calendar-picker-indicator,
+          .admin-input[type="time"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            filter: invert(1) brightness(2) contrast(1.1);
+            opacity: 0.78;
+          }
+
+          .admin-input[type="date"]::-webkit-calendar-picker-indicator:hover,
+          .admin-input[type="time"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+          }
+        `}</style>
+      </div>
+    );
   }
 
   return (

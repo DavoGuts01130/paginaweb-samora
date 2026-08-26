@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import Navbar from "@/components/Navbar";
 import CustomerFollowupsAdmin from "@/components/CustomerFollowupsAdmin";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Seguimiento de clientes",
+  title: "Seguimiento de clientes | Admin Samora",
+  description:
+    "CRM comercial para organizar clientes, cotizaciones, pedidos y próximos contactos.",
 };
 
 export type CustomerFollowup = {
@@ -90,36 +93,39 @@ export default async function AdminCustomerFollowupsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black px-4 py-24 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col gap-4 border-b border-white/10 pb-8 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-white/35">
-              Panel admin
+    <>
+      <Navbar />
+
+      <main className="min-h-screen bg-black pt-24 text-white">
+        <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-14">
+          <Link
+            href="/admin"
+            className="text-sm text-white/50 transition hover:text-white"
+          >
+            ← Volver al panel
+          </Link>
+
+          <div className="mt-8">
+            <p className="text-sm uppercase tracking-[0.35em] text-white/35">
+              Administración
             </p>
 
-            <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-white sm:text-5xl">
+            <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] sm:text-5xl md:text-7xl">
               Seguimiento de clientes
             </h1>
 
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-white/50 sm:text-base sm:leading-7">
-              Organiza clientes pendientes, contactos manuales, recordatorios,
-              estados comerciales y mensajes rápidos por WhatsApp.
+            <p className="mt-4 max-w-3xl text-base leading-7 text-white/55 md:text-lg md:leading-8">
+              Centraliza clientes pendientes, próximos contactos y procesos
+              comerciales provenientes de cotizaciones y pedidos sin perder el
+              contexto de cada origen.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/admin"
-              className="inline-flex min-h-11 w-fit items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
-            >
-              Volver al panel
-            </Link>
+          <div className="mt-10">
+            <CustomerFollowupsAdmin initialFollowups={followups ?? []} />
           </div>
-        </div>
-
-        <CustomerFollowupsAdmin initialFollowups={followups ?? []} />
-      </div>
-    </main>
+        </section>
+      </main>
+    </>
   );
 }

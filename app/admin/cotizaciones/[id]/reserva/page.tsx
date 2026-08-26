@@ -292,7 +292,7 @@ export default async function QuoteReservationReceiptPage({
 
           <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
             <Link
-              href="/admin/cotizaciones"
+              href={`/admin/cotizaciones/${typedQuote.id}`}
               className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm text-white/70 transition hover:border-white/35 hover:bg-white hover:text-black"
             >
               Volver a cotizaciones

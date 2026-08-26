@@ -62,6 +62,14 @@ const priorityOptions: PriorityOption[] = [
   { value: "urgente", label: "Urgente" },
 ];
 
+const originOptions = [
+  { value: "todos", label: "Todos los orígenes" },
+  { value: "quote_request", label: "Cotizaciones" },
+  { value: "store_order", label: "Pedidos" },
+  { value: "manual", label: "Manuales" },
+  { value: "reservation", label: "Reservas" },
+];
+
 const sourceLabels: Record<string, string> = {
   manual: "Manual",
   quote_request: "Cotización",
@@ -273,6 +281,58 @@ function getStatusStyle(status: string) {
   return "border-white/10 bg-white/[0.04] text-white/50";
 }
 
+function isClosedFollowup(status: string) {
+  return ["cerrado", "cancelado"].includes(status);
+}
+
+function getBogotaDateKey(value: Date | string) {
+  const date = typeof value === "string" ? new Date(value) : value;
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value ?? "0000";
+  const month = parts.find((part) => part.type === "month")?.value ?? "00";
+  const day = parts.find((part) => part.type === "day")?.value ?? "00";
+
+  return `${year}-${month}-${day}`;
+}
+
+function getFollowupTiming(followup: CustomerFollowup) {
+  if (!followup.next_followup_at) {
+    return {
+      label: "Sin programar",
+      className: "text-white/30",
+    };
+  }
+
+  const today = getBogotaDateKey(new Date());
+  const target = getBogotaDateKey(followup.next_followup_at);
+
+  if (!isClosedFollowup(followup.status) && target < today) {
+    return {
+      label: `Vencido · ${formatShortDate(followup.next_followup_at)}`,
+      className: "text-red-300",
+    };
+  }
+
+  if (!isClosedFollowup(followup.status) && target === today) {
+    return {
+      label: `Hoy · ${formatShortDate(followup.next_followup_at)}`,
+      className: "text-yellow-200",
+    };
+  }
+
+  return {
+    label: formatShortDate(followup.next_followup_at),
+    className: "text-white/40",
+  };
+}
+
 export default function CustomerFollowupsAdmin({
   initialFollowups,
 }: {
@@ -290,6 +350,7 @@ export default function CustomerFollowupsAdmin({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [priorityFilter, setPriorityFilter] = useState("todas");
+  const [originFilter, setOriginFilter] = useState("todos");
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [notice, setNotice] = useState("");
@@ -321,6 +382,7 @@ export default function CustomerFollowupsAdmin({
           item.summary,
           item.internal_notes,
           getFollowupDisplayTitle(item),
+          getFollowupOriginLabel(item),
         ]
           .filter(Boolean)
           .join(" ")
@@ -333,12 +395,20 @@ export default function CustomerFollowupsAdmin({
       const matchesPriority =
         priorityFilter === "todas" || item.priority === priorityFilter;
 
-      return matchesSearch && matchesStatus && matchesPriority;
+      const matchesOrigin =
+        originFilter === "todos" || item.related_type === originFilter;
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesPriority &&
+        matchesOrigin
+      );
     });
-  }, [followups, priorityFilter, search, statusFilter]);
+  }, [followups, originFilter, priorityFilter, search, statusFilter]);
 
   const selectedFollowup =
-    followups.find((item) => item.id === selectedId) ??
+    filteredFollowups.find((item) => item.id === selectedId) ??
     filteredFollowups[0] ??
     null;
 
@@ -359,9 +429,17 @@ export default function CustomerFollowupsAdmin({
     ["alta", "urgente"].includes(item.priority)
   ).length;
 
-  const scheduledCount = followups.filter((item) =>
-    Boolean(item.next_followup_at)
+  const scheduledCount = followups.filter(
+    (item) => Boolean(item.next_followup_at) && !isClosedFollowup(item.status)
   ).length;
+
+  const todayKey = getBogotaDateKey(new Date());
+
+  const dueCount = followups.filter((item) => {
+    if (!item.next_followup_at || isClosedFollowup(item.status)) return false;
+
+    return getBogotaDateKey(item.next_followup_at) <= todayKey;
+  }).length;
 
   useEffect(() => {
     if (!focusFollowupId || handledFocusRef.current === focusFollowupId) return;
@@ -376,6 +454,7 @@ export default function CustomerFollowupsAdmin({
     handledFocusRef.current = focusFollowupId;
     setStatusFilter("todos");
     setPriorityFilter("todas");
+    setOriginFilter("todos");
 
     if (!focusedFollowup) {
       setSearch(focusFollowupId);
@@ -613,27 +692,34 @@ export default function CustomerFollowupsAdmin({
         </div>
       )}
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <MetricCard label="Seguimientos" value={followups.length} />
-        <MetricCard label="Pendientes" value={pendingCount} />
-        <MetricCard label="Prioridad alta" value={urgentCount} />
-        <MetricCard label="Programados" value={scheduledCount} />
+        <MetricCard label="Pendientes" value={pendingCount} tone="yellow" />
+        <MetricCard label="Hoy / vencidos" value={dueCount} tone="red" />
+        <MetricCard label="Prioridad alta" value={urgentCount} tone="orange" />
+        <MetricCard label="Programados" value={scheduledCount} tone="blue" />
       </section>
 
-      <section className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5">
+      <section className="mt-6 rounded-[1.5rem] border border-white/10 bg-neutral-950 p-4 sm:p-5">
         <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-white/35">
               Sincronización
             </p>
 
-            <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">
-              Cotizaciones y pedidos pendientes
-            </h2>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <h2 className="text-xl font-semibold tracking-[-0.03em] text-white">
+                Cotizaciones y pedidos pendientes
+              </h2>
+
+              <span className="rounded-full border border-white/10 bg-black px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/35">
+                CRM automático
+              </span>
+            </div>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-white/45">
-              Crea seguimientos automáticamente desde cotizaciones y pedidos que
-              aún requieren contacto, pago, entrega o revisión.
+              Incorpora procesos que todavía requieren contacto, pago, entrega
+              o revisión sin duplicar seguimientos existentes.
             </p>
           </div>
 
@@ -641,27 +727,27 @@ export default function CustomerFollowupsAdmin({
             type="button"
             onClick={syncFollowups}
             disabled={isSyncing}
-            className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm font-medium text-white/75 transition hover:border-white hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-white/75 transition hover:border-white hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSyncing ? "Sincronizando..." : "Sincronizar cotizaciones y pedidos"}
+            {isSyncing ? "Sincronizando..." : "Sincronizar ahora"}
           </button>
         </div>
       </section>
 
-      <section className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 sm:p-5">
-        <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px]">
+      <section className="mt-6 rounded-[1.5rem] border border-white/10 bg-neutral-950 p-4 sm:p-5">
+        <div className="grid gap-3 xl:grid-cols-[1.2fr_210px_190px_190px]">
           <Input
             label="Buscar"
             value={search}
             onChange={setSearch}
-            placeholder="Nombre, teléfono, correo, código o nota"
+            placeholder="Cliente, teléfono, código o nota..."
           />
 
           <Select
             label="Estado"
             value={statusFilter}
             onChange={setStatusFilter}
-            options={[{ value: "todos", label: "Todos" }, ...statusOptions]}
+            options={[{ value: "todos", label: "Todos los estados" }, ...statusOptions]}
           />
 
           <Select
@@ -670,101 +756,140 @@ export default function CustomerFollowupsAdmin({
             onChange={setPriorityFilter}
             options={[{ value: "todas", label: "Todas" }, ...priorityOptions]}
           />
+
+          <Select
+            label="Origen"
+            value={originFilter}
+            onChange={setOriginFilter}
+            options={originOptions}
+          />
         </div>
       </section>
 
-      <section className="mt-6 grid items-start gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+      <section className="mt-6 grid items-start gap-6 xl:grid-cols-[0.72fr_1.28fr]">
         <Panel
           title="Clientes en seguimiento"
-          description="Revisa casos comerciales pendientes, cotizaciones y pedidos sincronizados."
+          description={`${filteredFollowups.length} de ${followups.length} seguimientos visibles.`}
+          compact
         >
-          <div className="max-h-[620px] space-y-3 overflow-y-auto pr-1">
+          <div className="max-h-[720px] space-y-2 overflow-y-auto pr-1">
             {filteredFollowups.length > 0 ? (
-              filteredFollowups.map((followup) => (
-                <button
-                  key={followup.id}
-                  id={`followup-${followup.id}`}
-                  type="button"
-                  onClick={() => setSelectedId(followup.id)}
-                  className={`block w-full rounded-2xl border p-4 text-left transition hover:border-white/25 ${
-                    selectedFollowup?.id === followup.id
-                      ? "border-white/30 bg-white/[0.06]"
-                      : "border-white/10 bg-black/45"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-white">
-                        {followup.customer_name || "Cliente sin nombre"}
-                      </p>
+              filteredFollowups.map((followup) => {
+                const timing = getFollowupTiming(followup);
 
-                      <p className="mt-1 truncate text-sm text-white/40">
-                        {getFollowupDisplayTitle(followup)}
-                      </p>
+                return (
+                  <button
+                    key={followup.id}
+                    id={`followup-${followup.id}`}
+                    type="button"
+                    onClick={() => setSelectedId(followup.id)}
+                    className={`block w-full rounded-2xl border px-4 py-3.5 text-left transition hover:border-white/25 ${
+                      selectedFollowup?.id === followup.id
+                        ? "border-white/30 bg-white/[0.06]"
+                        : "border-white/10 bg-black/45"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-white">
+                          {followup.customer_name || "Cliente sin nombre"}
+                        </p>
+
+                        <p className="mt-1 truncate text-xs text-white/40">
+                          {getFollowupDisplayTitle(followup)}
+                          {followup.related_code
+                            ? ` · ${followup.related_code}`
+                            : ""}
+                        </p>
+                      </div>
+
+                      <span
+                        className={`shrink-0 rounded-full border px-2.5 py-1 text-[0.62rem] uppercase tracking-[0.16em] ${getPriorityStyle(
+                          followup.priority
+                        )}`}
+                      >
+                        {priorityLabels[followup.priority] ?? followup.priority}
+                      </span>
                     </div>
 
-                    <span
-                      className={`shrink-0 rounded-full border px-2.5 py-1 text-[0.65rem] uppercase tracking-[0.18em] ${getPriorityStyle(
-                        followup.priority
-                      )}`}
-                    >
-                      {priorityLabels[followup.priority] ?? followup.priority}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span
-                      className={`rounded-full border px-2.5 py-1 text-[0.65rem] uppercase tracking-[0.16em] ${getStatusStyle(
-                        followup.status
-                      )}`}
-                    >
-                      {statusLabels[followup.status] ?? followup.status}
-                    </span>
-
-                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[0.65rem] uppercase tracking-[0.16em] text-white/35">
-                      {sourceLabels[followup.source] ?? followup.source}
-                    </span>
-
-                    {followup.related_code && (
-                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[0.65rem] uppercase tracking-[0.16em] text-white/35">
-                        {followup.related_code}
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`rounded-full border px-2.5 py-1 text-[0.62rem] uppercase tracking-[0.14em] ${getStatusStyle(
+                          followup.status
+                        )}`}
+                      >
+                        {statusLabels[followup.status] ?? followup.status}
                       </span>
-                    )}
-                  </div>
 
-                  <p className="mt-3 text-xs text-white/35">
-                    Próximo: {formatShortDate(followup.next_followup_at)}
-                  </p>
-                </button>
-              ))
+                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[0.62rem] uppercase tracking-[0.14em] text-white/40">
+                        {relatedLabels[followup.related_type] ??
+                          followup.related_type}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between gap-3 text-xs">
+                      <span className={timing.className}>
+                        Próximo: {timing.label}
+                      </span>
+
+                      <span className="shrink-0 text-white/25">
+                        {followup.contact_attempts}{" "}
+                        {followup.contact_attempts === 1 ? "intento" : "intentos"}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })
             ) : (
               <EmptyState text="No hay seguimientos con estos filtros." />
             )}
           </div>
         </Panel>
 
-        <Panel
-          title="Detalle del seguimiento"
-          description="Actualiza el estado, programa próximos contactos y abre WhatsApp con mensaje listo."
-        >
-          {selectedFollowup ? (
-            <FollowupDetail
-              followup={selectedFollowup}
-              isSaving={isSaving}
-              onUpdate={updateFollowup}
-              onWhatsapp={registerWhatsappOpened}
-            />
-          ) : (
-            <EmptyState text="Selecciona un seguimiento para ver el detalle." />
-          )}
-        </Panel>
+        <div className="xl:sticky xl:top-28">
+          <Panel
+            title="Detalle del seguimiento"
+            description="Gestiona el caso sin perder el origen comercial del cliente."
+          >
+            {selectedFollowup ? (
+              <FollowupDetail
+                followup={selectedFollowup}
+                isSaving={isSaving}
+                onUpdate={updateFollowup}
+                onWhatsapp={registerWhatsappOpened}
+              />
+            ) : (
+              <EmptyState text="Selecciona un seguimiento para ver el detalle." />
+            )}
+          </Panel>
+        </div>
       </section>
 
-      <section className="mt-6">
-        <Panel
-          title="Crear seguimiento manual"
-          description="Agrega un cliente o caso que no venga desde cotizaciones o pedidos."
-        >
+      <details className="group mt-6 overflow-hidden rounded-[1.5rem] border border-white/10 bg-neutral-950">
+        <summary className="cursor-pointer list-none p-5 transition hover:bg-white/[0.025] [&::-webkit-details-marker]:hidden">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.25em] text-white/30">
+                Acción secundaria
+              </p>
+
+              <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">
+                Crear seguimiento manual
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-white/45">
+                Úsalo para clientes o casos que no provienen de una cotización
+                o un pedido sincronizado.
+              </p>
+            </div>
+
+            <span className="shrink-0 text-white/35 transition group-open:rotate-180">
+              ↓
+            </span>
+          </div>
+        </summary>
+
+        <div className="border-t border-white/10 p-5">
           <div className="grid gap-4 lg:grid-cols-2">
             <Input
               label="Nombre cliente"
@@ -881,8 +1006,24 @@ export default function CustomerFollowupsAdmin({
               </button>
             </div>
           </div>
-        </Panel>
-      </section>
+        </div>
+      </details>
+
+      <style jsx global>{`
+        .admin-input {
+          color-scheme: dark;
+        }
+
+        .admin-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+          cursor: pointer;
+          filter: invert(1) brightness(1.8);
+          opacity: 0.72;
+        }
+
+        .admin-input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+          opacity: 1;
+        }
+      `}</style>
     </div>
   );
 }
@@ -941,36 +1082,30 @@ function FollowupDetail({
     });
   }
 
+  const timing = getFollowupTiming(followup);
+
   return (
-    <div className="grid gap-5">
-      <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <div className="grid gap-4">
+      <section className="rounded-2xl border border-white/10 bg-black/55 p-4 sm:p-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-[0.25em] text-white/30">
-              Cliente
+            <p className="text-[10px] uppercase tracking-[0.28em] text-white/30">
+              Ficha activa
             </p>
 
-            <h3 className="mt-2 break-words text-2xl font-semibold tracking-[-0.04em] text-white">
+            <h3 className="mt-2 break-words text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">
               {followup.customer_name || "Cliente sin nombre"}
             </h3>
 
-            <div className="mt-3 grid gap-1 text-sm text-white/45">
-              <p className="break-words">
-                WhatsApp: {followup.customer_phone || "Sin número"}
-              </p>
-              <p className="break-words">
-                Correo: {followup.customer_email || "Sin correo"}
-              </p>
-              <p>Intentos: {followup.contact_attempts}</p>
-              <p>Último contacto: {formatDate(followup.last_contacted_at)}</p>
-              <p>{getFollowupOriginLabel(followup)}</p>
-              {followup.related_code && <p>Código: {followup.related_code}</p>}
-            </div>
+            <p className="mt-2 text-sm text-white/45">
+              {getFollowupDisplayTitle(followup)}
+              {followup.related_code ? ` · ${followup.related_code}` : ""}
+            </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 md:justify-end">
+          <div className="flex flex-wrap gap-2 lg:max-w-[48%] lg:justify-end">
             <span
-              className={`rounded-full border px-3 py-1 text-[0.65rem] uppercase tracking-[0.18em] ${getStatusStyle(
+              className={`rounded-full border px-3 py-1 text-[0.62rem] uppercase tracking-[0.16em] ${getStatusStyle(
                 followup.status
               )}`}
             >
@@ -978,182 +1113,373 @@ function FollowupDetail({
             </span>
 
             <span
-              className={`rounded-full border px-3 py-1 text-[0.65rem] uppercase tracking-[0.18em] ${getPriorityStyle(
+              className={`rounded-full border px-3 py-1 text-[0.62rem] uppercase tracking-[0.16em] ${getPriorityStyle(
                 followup.priority
               )}`}
             >
               {priorityLabels[followup.priority] ?? followup.priority}
             </span>
 
-            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[0.65rem] uppercase tracking-[0.18em] text-white/35">
+            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[0.62rem] uppercase tracking-[0.16em] text-white/40">
               {relatedLabels[followup.related_type] ?? followup.related_type}
             </span>
           </div>
         </div>
 
-        <OriginAction followup={followup} />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Input
-          label="Nombre"
-          value={draft.customer_name}
-          onChange={(value) =>
-            setDraft((current) => ({ ...current, customer_name: value }))
-          }
-        />
-
-        <Input
-          label="WhatsApp"
-          value={draft.customer_phone}
-          onChange={(value) =>
-            setDraft((current) => ({ ...current, customer_phone: value }))
-          }
-        />
-
-        <Input
-          label="Correo"
-          value={draft.customer_email}
-          onChange={(value) =>
-            setDraft((current) => ({ ...current, customer_email: value }))
-          }
-        />
-
-        <Input
-          label="Título"
-          value={draft.title}
-          onChange={(value) =>
-            setDraft((current) => ({ ...current, title: value }))
-          }
-        />
-
-        <div className="lg:col-span-2">
-          <Textarea
-            label="Resumen"
-            value={draft.summary}
-            onChange={(value) =>
-              setDraft((current) => ({ ...current, summary: value }))
-            }
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <MiniInfo
+            label="Próximo contacto"
+            value={timing.label}
+            valueClassName={timing.className}
+          />
+          <MiniInfo
+            label="Último contacto"
+            value={formatDate(followup.last_contacted_at)}
+          />
+          <MiniInfo
+            label="Intentos"
+            value={String(followup.contact_attempts)}
           />
         </div>
 
-        <div className="lg:col-span-2">
-          <Textarea
-            label="Notas internas"
-            value={draft.internal_notes}
-            onChange={(value) =>
-              setDraft((current) => ({ ...current, internal_notes: value }))
-            }
-          />
-        </div>
-
-        <Select
-          label="Estado"
-          value={draft.status}
-          onChange={(value) =>
-            setDraft((current) => ({ ...current, status: value }))
-          }
-          options={statusOptions}
-        />
-
-        <Select
-          label="Prioridad"
-          value={draft.priority}
-          onChange={(value) =>
-            setDraft((current) => ({ ...current, priority: value }))
-          }
-          options={priorityOptions}
-        />
-
-        <label className="block">
-          <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/35">
-            Próximo seguimiento
-          </span>
-
-          <input
-            type="datetime-local"
-            value={draft.next_followup_at}
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                next_followup_at: event.target.value,
-              }))
-            }
-            className="admin-input h-12 w-full rounded-2xl border border-white/10 bg-black px-4 text-sm text-white outline-none transition focus:border-white/30"
-          />
-        </label>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:self-end">
-          <button
-            type="button"
-            onClick={saveChanges}
-            disabled={isSaving}
-            className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-medium text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isSaving ? "Guardando..." : "Guardar cambios"}
-          </button>
-
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <button
             type="button"
             onClick={() => onWhatsapp(followup)}
-            className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm font-medium text-white/75 transition hover:border-white hover:bg-white hover:text-black"
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:scale-[1.01]"
           >
             Abrir WhatsApp
           </button>
+
+          <OriginAction followup={followup} compact />
         </div>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <section className="rounded-2xl border border-white/10 bg-black/45 p-4">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-white/30">
+            Contacto
+          </p>
+
+          <div className="mt-4 grid gap-3 text-sm">
+            <InfoLine
+              label="WhatsApp"
+              value={followup.customer_phone || "Sin número"}
+            />
+            <InfoLine
+              label="Correo"
+              value={followup.customer_email || "Sin correo"}
+            />
+            <InfoLine
+              label="Origen"
+              value={getFollowupOriginLabel(followup)}
+            />
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-white/10 bg-black/45 p-4">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-white/30">
+            Última interacción
+          </p>
+
+          <div className="mt-4 grid gap-3 text-sm">
+            <InfoLine
+              label="Canal"
+              value={followup.last_channel || "Sin registro"}
+            />
+            <InfoLine
+              label="Tipo"
+              value={followup.last_message_type || "Sin registro"}
+            />
+            <InfoLine
+              label="Actualizado"
+              value={formatDate(followup.updated_at)}
+            />
+          </div>
+        </section>
       </div>
+
+      <section className="rounded-2xl border border-white/10 bg-black/45 p-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-white/30">
+              Resumen del caso
+            </p>
+
+            <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-white/65">
+              {followup.summary || "No hay un resumen registrado para este seguimiento."}
+            </p>
+          </div>
+
+          <div className="border-t border-white/10 pt-4 md:border-l md:border-t-0 md:pl-4 md:pt-0">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-white/30">
+              Notas internas
+            </p>
+
+            <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-white/55">
+              {followup.internal_notes || "Sin notas internas."}
+            </p>
+          </div>
+        </div>
+
+        {followup.last_message_body && (
+          <details className="group mt-4 border-t border-white/10 pt-4">
+            <summary className="cursor-pointer list-none text-sm text-white/45 transition hover:text-white [&::-webkit-details-marker]:hidden">
+              <span className="flex items-center justify-between gap-3">
+                Ver último mensaje preparado
+                <span className="text-white/25 transition group-open:rotate-180">
+                  ↓
+                </span>
+              </span>
+            </summary>
+
+            <p className="mt-3 whitespace-pre-wrap rounded-xl border border-white/10 bg-black p-3 text-xs leading-5 text-white/45">
+              {followup.last_message_body}
+            </p>
+          </details>
+        )}
+      </section>
+
+      <details className="group overflow-hidden rounded-2xl border border-white/10 bg-black/45">
+        <summary className="cursor-pointer list-none p-4 transition hover:bg-white/[0.025] [&::-webkit-details-marker]:hidden">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-white/30">
+                Edición
+              </p>
+
+              <p className="mt-1 font-medium text-white">
+                Editar seguimiento
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-white/35">
+                Datos del cliente, estado, prioridad, notas y próximo contacto.
+              </p>
+            </div>
+
+            <span className="shrink-0 text-white/30 transition group-open:rotate-180">
+              ↓
+            </span>
+          </div>
+        </summary>
+
+        <div className="border-t border-white/10 p-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Input
+              label="Nombre"
+              value={draft.customer_name}
+              onChange={(value) =>
+                setDraft((current) => ({ ...current, customer_name: value }))
+              }
+            />
+
+            <Input
+              label="WhatsApp"
+              value={draft.customer_phone}
+              onChange={(value) =>
+                setDraft((current) => ({ ...current, customer_phone: value }))
+              }
+            />
+
+            <Input
+              label="Correo"
+              value={draft.customer_email}
+              onChange={(value) =>
+                setDraft((current) => ({ ...current, customer_email: value }))
+              }
+            />
+
+            <Input
+              label="Título"
+              value={draft.title}
+              onChange={(value) =>
+                setDraft((current) => ({ ...current, title: value }))
+              }
+            />
+
+            <div className="lg:col-span-2">
+              <Textarea
+                label="Resumen"
+                value={draft.summary}
+                onChange={(value) =>
+                  setDraft((current) => ({ ...current, summary: value }))
+                }
+              />
+            </div>
+
+            <div className="lg:col-span-2">
+              <Textarea
+                label="Notas internas"
+                value={draft.internal_notes}
+                onChange={(value) =>
+                  setDraft((current) => ({ ...current, internal_notes: value }))
+                }
+              />
+            </div>
+
+            <Select
+              label="Estado"
+              value={draft.status}
+              onChange={(value) =>
+                setDraft((current) => ({ ...current, status: value }))
+              }
+              options={statusOptions}
+            />
+
+            <Select
+              label="Prioridad"
+              value={draft.priority}
+              onChange={(value) =>
+                setDraft((current) => ({ ...current, priority: value }))
+              }
+              options={priorityOptions}
+            />
+
+            <label className="block">
+              <span className="mb-2 block text-xs uppercase tracking-[0.24em] text-white/35">
+                Próximo seguimiento
+              </span>
+
+              <input
+                type="datetime-local"
+                value={draft.next_followup_at}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    next_followup_at: event.target.value,
+                  }))
+                }
+                className="admin-input h-12 w-full rounded-2xl border border-white/10 bg-black px-4 text-sm text-white outline-none transition focus:border-white/30"
+              />
+            </label>
+
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={saveChanges}
+                disabled={isSaving}
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-medium text-black transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isSaving ? "Guardando..." : "Guardar cambios"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }
 
-function OriginAction({ followup }: { followup: CustomerFollowup }) {
+function MiniInfo({
+  label,
+  value,
+  valueClassName = "text-white/70",
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">
+        {label}
+      </p>
+      <p className={`mt-2 break-words text-sm font-medium ${valueClassName}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs text-white/30">{label}</p>
+      <p className="mt-1 break-words text-white/65">{value}</p>
+    </div>
+  );
+}
+
+function OriginAction({
+  followup,
+  compact = false,
+}: {
+  followup: CustomerFollowup;
+  compact?: boolean;
+}) {
+  let href = "";
+  let label = "";
+
   if (followup.related_type === "quote_request") {
-    const href = followup.related_id
+    href = followup.related_id
       ? `/admin/cotizaciones?focus=${encodeURIComponent(followup.related_id)}`
       : "/admin/cotizaciones";
-
-    return (
-      <div className="mt-4 flex flex-wrap gap-3 border-t border-white/10 pt-4">
-        <Link
-          href={href}
-          className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-white/70 transition hover:border-white hover:bg-white hover:text-black"
-        >
-          Ver cotización →
-        </Link>
-      </div>
-    );
-  }
-
-  if (followup.related_type === "store_order") {
-    const href = followup.related_id
+    label = "Ver cotización →";
+  } else if (followup.related_type === "store_order") {
+    href = followup.related_id
       ? `/admin/pedidos?focus=${encodeURIComponent(
           followup.related_id
         )}#order-${followup.related_id}`
       : "/admin/pedidos";
+    label = "Ver pedido →";
+  } else {
+    return compact ? (
+      <span className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-4 py-2.5 text-sm text-white/25">
+        Seguimiento manual
+      </span>
+    ) : null;
+  }
 
+  if (compact) {
     return (
-      <div className="mt-4 flex flex-wrap gap-3 border-t border-white/10 pt-4">
-        <Link
-          href={href}
-          className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-white/70 transition hover:border-white hover:bg-white hover:text-black"
-        >
-          Ver pedido →
-        </Link>
-      </div>
+      <Link
+        href={href}
+        className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-white/70 transition hover:border-white hover:bg-white hover:text-black"
+      >
+        {label}
+      </Link>
     );
   }
 
-  return null;
+  return (
+    <div className="mt-4 flex flex-wrap gap-3 border-t border-white/10 pt-4">
+      <Link
+        href={href}
+        className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-white/70 transition hover:border-white hover:bg-white hover:text-black"
+      >
+        {label}
+      </Link>
+    </div>
+  );
 }
 
-function MetricCard({ label, value }: { label: string; value: number }) {
+function MetricCard({
+  label,
+  value,
+  tone = "white",
+}: {
+  label: string;
+  value: number;
+  tone?: "white" | "yellow" | "red" | "orange" | "blue";
+}) {
+  const toneClass =
+    tone === "yellow"
+      ? "text-yellow-300"
+      : tone === "red"
+      ? "text-red-300"
+      : tone === "orange"
+      ? "text-orange-300"
+      : tone === "blue"
+      ? "text-cyan-300"
+      : "text-white";
+
   return (
-    <article className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5">
-      <p className="text-xs uppercase tracking-[0.25em] text-white/35">
+    <article className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-4 sm:rounded-[1.5rem] sm:p-5">
+      <p className="text-xs uppercase tracking-[0.22em] text-white/35">
         {label}
       </p>
 
-      <p className="mt-4 text-4xl font-semibold tracking-[-0.06em] text-white">
+      <p className={`mt-3 text-2xl font-bold sm:text-3xl ${toneClass}`}>
         {value}
       </p>
     </article>
@@ -1164,14 +1490,20 @@ function Panel({
   title,
   description,
   children,
+  compact = false,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <section className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5">
-      <div className="mb-5 border-b border-white/10 pb-5">
+    <section className="rounded-[1.5rem] border border-white/10 bg-neutral-950 p-5">
+      <div
+        className={`border-b border-white/10 ${
+          compact ? "mb-4 pb-4" : "mb-5 pb-5"
+        }`}
+      >
         <h2 className="text-xl font-semibold tracking-[-0.03em] text-white">
           {title}
         </h2>
