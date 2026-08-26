@@ -4,12 +4,20 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 export type CartItem = {
   id: string;
+  product_id?: string | null;
+  variant_id?: string | null;
   name: string;
   slug: string;
   price: number;
   image_url: string | null;
   quantity: number;
   stock?: number | null;
+  variant_name?: string | null;
+  variant_option_label?: string | null;
+  variant_option_value?: string | null;
+  variant_sku?: string | null;
+  product_category?: string | null;
+  product_subcategory?: string | null;
 };
 
 type CartContextType = {
@@ -53,6 +61,15 @@ function normalizeCartItem(item: CartItem) {
 
   return {
     ...item,
+    id: String(item.id),
+    product_id: item.product_id ?? item.id,
+    variant_id: item.variant_id ?? null,
+    variant_name: item.variant_name ?? null,
+    variant_option_label: item.variant_option_label ?? null,
+    variant_option_value: item.variant_option_value ?? null,
+    variant_sku: item.variant_sku ?? null,
+    product_category: item.product_category ?? null,
+    product_subcategory: item.product_subcategory ?? null,
     price: Number(item.price ?? 0),
     quantity: safeQuantity,
     stock: item.stock ?? null,

@@ -1,6 +1,14 @@
 "use client";
 
-export default function DeleteProjectButton({ projectId }: { projectId: string }) {
+import { useRouter } from "next/navigation";
+
+export default function DeleteProjectButton({
+  projectId,
+}: {
+  projectId: string;
+}) {
+  const router = useRouter();
+
   async function handleDelete() {
     const confirmDelete = confirm(
       "¿Eliminar este proyecto y todas sus imágenes?"
@@ -17,16 +25,17 @@ export default function DeleteProjectButton({ projectId }: { projectId: string }
       return;
     }
 
-    alert("Proyecto eliminado");
-    window.location.reload();
+    router.push("/admin/portafolio");
+    router.refresh();
   }
 
   return (
     <button
+      type="button"
       onClick={handleDelete}
       className="text-sm text-red-400 transition hover:text-red-300"
     >
-      Eliminar
+      Eliminar proyecto
     </button>
   );
 }

@@ -4,6 +4,25 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useCart } from "@/components/CartProvider";
 
+function formatCOP(value: number | null | undefined) {
+  return `$${Number(value ?? 0).toLocaleString("es-CO")}`;
+}
+
+function getVariantText(item: {
+  variant_name?: string | null;
+  variant_option_label?: string | null;
+  variant_option_value?: string | null;
+  variant_sku?: string | null;
+}) {
+  const option = [item.variant_option_label, item.variant_option_value]
+    .filter(Boolean)
+    .join(": ");
+
+  return [item.variant_name, option, item.variant_sku ? `SKU: ${item.variant_sku}` : ""]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export default function CarritoPage() {
   const { items, removeItem, updateItemQuantity, clearCart, totalPrice } = useCart();
 
@@ -11,17 +30,15 @@ export default function CarritoPage() {
     process.env.NEXT_PUBLIC_SAMORA_WHATSAPP_NUMBER ?? "573138429568";
 
   const productList = items
-    .map(
-      (item) =>
-        `• ${item.name} x${item.quantity} ($${item.price.toLocaleString(
-          "es-CO"
-        )})`
-    )
+    .map((item) => {
+      const variantText = getVariantText(item);
+      return `• ${item.name}${variantText ? ` (${variantText})` : ""} x${item.quantity} (${formatCOP(item.price)})`;
+    })
     .join("\n");
 
   const message = encodeURIComponent(
-    `Hola, quiero consultar este pedido en la tienda de Samora Estudio:\n\n${productList}\n\nTotal: $${totalPrice.toLocaleString(
-      "es-CO"
+    `Hola, quiero consultar este pedido en la tienda de Samora Estudio:\n\n${productList}\n\nTotal: ${formatCOP(
+      totalPrice
     )}\n\n¿Está disponible?`
   );
 
@@ -50,7 +67,7 @@ export default function CarritoPage() {
             </h1>
 
             <p className="mt-4 max-w-2xl text-base leading-7 text-white/55 md:text-lg">
-              Revisa tus productos antes de confirmar el pedido.
+              Revisa tus productos, opciones y cantidades antes de confirmar el pedido.
             </p>
           </div>
 
@@ -73,72 +90,92 @@ export default function CarritoPage() {
           ) : (
             <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_0.42fr] lg:items-start">
               <div className="space-y-4">
-                {items.map((item) => (
-                  <article
-                    key={item.id}
-                    className="premium-card rounded-[1.5rem] p-4 sm:p-5"
-                  >
-                    <div className="flex gap-4">
-                      {item.image_url && (
-                        <img
-                          src={item.image_url}
-                          alt={item.name}
-                          className="h-24 w-24 shrink-0 rounded-2xl object-cover sm:h-28 sm:w-28"
-                        />
-                      )}
+                {items.map((item) => {
+                  const variantText = getVariantText(item);
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="min-w-0">
-                            <h3 className="truncate text-lg font-semibold">
-                              {item.name}
-                            </h3>
+                  return (
+                    <article
+                      key={item.id}
+                      className="premium-card rounded-[1.5rem] p-4 sm:p-5"
+                    >
+                      <div className="flex gap-4">
+                        {item.image_url && (
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                            className="h-24 w-24 shrink-0 rounded-2xl object-cover sm:h-28 sm:w-28"
+                          />
+                        )}
 
-                            <div className="mt-3 flex flex-wrap items-center gap-3">
-                              <label className="text-sm text-white/45">
-                                Cantidad
-                              </label>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <h3 className="truncate text-lg font-semibold">
+                                {item.name}
+                              </h3>
 
-                              <input
-                                type="number"
-                                min={1}
-                                value={item.quantity}
-                                onChange={(event) =>
-                                  updateItemQuantity(
-                                    item.id,
-                                    Number(event.target.value)
-                                  )
-                                }
-                                className="h-10 w-20 rounded-xl border border-white/10 bg-black px-3 text-sm text-white outline-none focus:border-white/35"
-                              />
+                              {variantText && (
+                                <p className="mt-2 rounded-2xl border border-white/10 bg-black px-3 py-2 text-sm text-white/55">
+                                  {variantText}
+                                </p>
+                              )}
+
+                              {(item.product_category || item.product_subcategory) && (
+                                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-white/30">
+                                  {[item.product_category, item.product_subcategory].filter(Boolean).join(" / ")}
+                                </p>
+                              )}
+
+                              <div className="mt-3 flex flex-wrap items-center gap-3">
+                                <label className="text-sm text-white/45">
+                                  Cantidad
+                                </label>
+
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={item.stock ?? undefined}
+                                  value={item.quantity}
+                                  onChange={(event) =>
+                                    updateItemQuantity(
+                                      item.id,
+                                      Number(event.target.value)
+                                    )
+                                  }
+                                  className="h-10 w-20 rounded-xl border border-white/10 bg-black px-3 text-sm text-white outline-none focus:border-white/35"
+                                />
+
+                                {item.stock !== null && item.stock !== undefined && (
+                                  <span className="text-xs text-white/35">
+                                    Máx: {item.stock}
+                                  </span>
+                                )}
+                              </div>
+
+                              <p className="mt-3 text-sm text-white/60">
+                                Unidad: {formatCOP(item.price)}
+                              </p>
                             </div>
 
-                            <p className="mt-3 text-sm text-white/60">
-                              Unidad: ${item.price.toLocaleString("es-CO")}
-                            </p>
-                          </div>
+                            <div className="text-left sm:text-right">
+                              <p className="text-lg font-bold">
+                                {formatCOP(item.price * item.quantity)}
+                              </p>
 
-                          <div className="text-left sm:text-right">
-                            <p className="text-lg font-bold">
-                              $
-                              {(item.price * item.quantity).toLocaleString(
-                                "es-CO"
-                              )}
-                            </p>
-
-                            <button
-                              type="button"
-                              onClick={() => removeItem(item.id)}
-                              className="mt-3 text-sm text-red-400 transition hover:text-red-300"
-                            >
-                              Eliminar
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => removeItem(item.id)}
+                                className="mt-3 text-sm text-red-400 transition hover:text-red-300"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
 
               <aside className="premium-card h-fit rounded-[1.5rem] p-5 sm:p-6 lg:sticky lg:top-28">
@@ -152,7 +189,7 @@ export default function CarritoPage() {
 
                   <div className="flex items-center justify-between">
                     <span className="text-white/45">Subtotal</span>
-                    <span>${totalPrice.toLocaleString("es-CO")}</span>
+                    <span>{formatCOP(totalPrice)}</span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -164,7 +201,7 @@ export default function CarritoPage() {
                 <div className="mt-6 flex items-center justify-between">
                   <span className="text-white/55">Total</span>
                   <span className="text-2xl font-bold">
-                    ${totalPrice.toLocaleString("es-CO")}
+                    {formatCOP(totalPrice)}
                   </span>
                 </div>
 

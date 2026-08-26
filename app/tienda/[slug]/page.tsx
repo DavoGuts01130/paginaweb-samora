@@ -10,7 +10,50 @@ type Props = {
   }>;
 };
 
-function getImageStyle(product: any): CSSProperties {
+type Product = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  price: number | null;
+  image_url: string | null;
+  stock: number | null;
+  image_fit: string | null;
+  image_zoom: number | null;
+  image_x: number | null;
+  image_y: number | null;
+  category_id: string | null;
+  subcategory_id: string | null;
+  has_variants: boolean | null;
+};
+
+type ProductVariant = {
+  id: string;
+  product_id: string;
+  name: string | null;
+  sku: string | null;
+  option_1_label: string | null;
+  option_1_value: string | null;
+  option_2_label: string | null;
+  option_2_value: string | null;
+  price_cop: number | null;
+  stock: number | null;
+  is_active: boolean | null;
+};
+
+type ProductCategory = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+type ProductSubcategory = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+function getImageStyle(product: Product): CSSProperties {
   return {
     objectFit: product.image_fit === "contain" ? "contain" : "cover",
     objectPosition: `${Number(product.image_x ?? 50)}% ${Number(
@@ -18,6 +61,38 @@ function getImageStyle(product: any): CSSProperties {
     )}%`,
     transform: `scale(${Number(product.image_zoom ?? 1)})`,
   };
+}
+
+function formatCOP(value: number | null | undefined) {
+  return `$${Number(value ?? 0).toLocaleString("es-CO")}`;
+}
+
+function getStockFromProduct(product: Product, variants: ProductVariant[]) {
+  if (product.has_variants && variants.length > 0) {
+    return variants.reduce((sum, variant) => sum + Math.max(Number(variant.stock ?? 0), 0), 0);
+  }
+
+  return Math.max(Number(product.stock ?? 0), 0);
+}
+
+function getPriceLabel(product: Product, variants: ProductVariant[]) {
+  const variantPrices = variants
+    .map((variant) => Number(variant.price_cop ?? 0))
+    .filter((price) => price > 0);
+
+  if (product.has_variants && variantPrices.length > 0) {
+    const min = Math.min(...variantPrices);
+    const max = Math.max(...variantPrices);
+    return min === max ? formatCOP(min) : `${formatCOP(min)} - ${formatCOP(max)}`;
+  }
+
+  return formatCOP(product.price);
+}
+
+function getWhatsappMessage(product: Product, productUrl: string) {
+  return encodeURIComponent(
+    `Hola, vi este producto en la tienda de Samora Estudio:\n\n📸 ${product.name}\n🔗 ${productUrl}\n\nQuisiera más información.`
+  );
 }
 
 export default async function ProductDetailPage({ params }: Props) {
@@ -66,7 +141,37 @@ export default async function ProductDetailPage({ params }: Props) {
     );
   }
 
-  const stock = Number(product.stock ?? 0);
+  const productRecord = product as Product;
+
+  const [{ data: variants }, { data: category }, { data: subcategory }] = await Promise.all([
+    supabase
+      .from("product_variants")
+      .select("id, product_id, name, sku, option_1_label, option_1_value, option_2_label, option_2_value, price_cop, stock, is_active")
+      .eq("product_id", productRecord.id)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+    productRecord.category_id
+      ? supabase
+          .from("product_categories")
+          .select("id, name, slug")
+          .eq("id", productRecord.category_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    productRecord.subcategory_id
+      ? supabase
+          .from("product_subcategories")
+          .select("id, name, slug")
+          .eq("id", productRecord.subcategory_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const variantList = ((variants ?? []) as ProductVariant[]).filter(
+    (variant) => variant.is_active !== false
+  );
+  const categoryRecord = category as ProductCategory | null;
+  const subcategoryRecord = subcategory as ProductSubcategory | null;
+  const stock = getStockFromProduct(productRecord, variantList);
   const stockPercentage = Math.min((stock / 10) * 100, 100);
 
   const barColor =
@@ -81,13 +186,12 @@ export default async function ProductDetailPage({ params }: Props) {
 
   const productUrl = `${
     process.env.NEXT_PUBLIC_SITE_URL || "https://samoraestudiocreativo.com"
-  }/tienda/${product.slug}`;
+  }/tienda/${productRecord.slug}`;
 
-  const whatsappMessage = encodeURIComponent(
-    `Hola, vi este producto en la tienda de Samora Estudio:\n\n📸 ${product.name}\n🔗 ${productUrl}\n\nQuisiera más información.`
-  );
-
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
+  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${getWhatsappMessage(
+    productRecord,
+    productUrl
+  )}`;
 
   return (
     <>
@@ -104,13 +208,13 @@ export default async function ProductDetailPage({ params }: Props) {
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_0.72fr] lg:items-start">
             <div className="premium-card overflow-hidden rounded-[2rem]">
-              {product.image_url ? (
+              {productRecord.image_url ? (
                 <div className="flex h-[360px] items-center justify-center overflow-hidden bg-black sm:h-[460px] lg:h-[620px]">
                   <img
-                    src={product.image_url}
-                    alt={product.name}
+                    src={productRecord.image_url}
+                    alt={productRecord.name}
                     className="image-premium h-full w-full"
-                    style={getImageStyle(product)}
+                    style={getImageStyle(productRecord)}
                   />
                 </div>
               ) : (
@@ -121,31 +225,50 @@ export default async function ProductDetailPage({ params }: Props) {
             </div>
 
             <aside className="premium-card rounded-[2rem] p-5 sm:p-7 lg:sticky lg:top-28">
-              <p className="text-sm uppercase tracking-[0.35em] text-white/35">
+              <div className="flex flex-wrap gap-2">
+                {categoryRecord && (
+                  <Link
+                    href={`/tienda?categoria=${categoryRecord.slug}`}
+                    className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-white/45 transition hover:border-white/25 hover:text-white"
+                  >
+                    {categoryRecord.name}
+                  </Link>
+                )}
+                {subcategoryRecord && categoryRecord && (
+                  <Link
+                    href={`/tienda?categoria=${categoryRecord.slug}&subcategoria=${subcategoryRecord.slug}`}
+                    className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-white/45 transition hover:border-white/25 hover:text-white"
+                  >
+                    {subcategoryRecord.name}
+                  </Link>
+                )}
+              </div>
+
+              <p className="mt-5 text-sm uppercase tracking-[0.35em] text-white/35">
                 Producto
               </p>
 
               <h1 className="mt-4 text-4xl font-bold tracking-[-0.04em] md:text-6xl">
-                {product.name}
+                {productRecord.name}
               </h1>
 
               <p className="mt-6 text-base leading-7 text-white/55 md:text-lg md:leading-8">
-                {product.description}
+                {productRecord.description}
               </p>
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <span className="text-3xl font-bold">
-                  ${Number(product.price ?? 0).toLocaleString("es-CO")}
+                  {variantList.length > 0 ? "Desde " : ""}{getPriceLabel(productRecord, variantList)}
                 </span>
 
                 <span className="rounded-full border border-white/10 bg-black px-4 py-2 text-sm text-white/50">
-                  Stock: {stock}
+                  Stock total: {stock}
                 </span>
               </div>
 
               {stock > 0 && stock <= 5 && (
                 <p className="mt-4 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-4 text-sm font-medium text-yellow-400">
-                  Solo quedan {stock} unidades disponibles.
+                  Solo quedan {stock} unidades disponibles entre todas las opciones.
                 </p>
               )}
 
@@ -185,13 +308,16 @@ export default async function ProductDetailPage({ params }: Props) {
                   <>
                     <AddToCartButton
                       product={{
-                        id: product.id,
-                        name: product.name,
-                        slug: product.slug,
-                        price: Number(product.price ?? 0),
-                        image_url: product.image_url,
-                        stock: product.stock,
+                        id: productRecord.id,
+                        name: productRecord.name,
+                        slug: productRecord.slug,
+                        price: Number(productRecord.price ?? 0),
+                        image_url: productRecord.image_url,
+                        stock: productRecord.stock,
+                        product_category: categoryRecord?.name ?? null,
+                        product_subcategory: subcategoryRecord?.name ?? null,
                       }}
+                      variants={variantList}
                     />
 
                     <a

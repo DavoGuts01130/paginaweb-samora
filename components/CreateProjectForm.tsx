@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ImageAdjustControls from "@/components/ImageAdjustControls";
 import PortfolioImageUploader from "@/components/PortfolioImageUploader";
@@ -28,6 +29,7 @@ export default function CreateProjectForm({
   subcategories,
 }: CreateProjectFormProps) {
   const supabase = createClient();
+  const router = useRouter();
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -62,44 +64,52 @@ export default function CreateProjectForm({
     setMessage("");
 
     const formData = new FormData(event.currentTarget);
-
-    const title = String(formData.get("title") || "");
+    const title = String(formData.get("title") || "").trim();
     const slug = slugify(title);
 
-    const { error } = await supabase.from("portfolio_projects").insert({
-      title,
-      slug,
-      description: String(formData.get("description") || ""),
-      category_id: selectedCategoryId,
-      subcategory_id: selectedSubcategoryId || null,
-      year: String(formData.get("year") || ""),
-      client: String(formData.get("client") || ""),
-      cover_image: coverImage,
-      image_fit: imageFit,
-      image_zoom: imageZoom,
-      image_x: imageX,
-      image_y: imageY,
-      is_featured: formData.get("is_featured") === "on",
-      featured_order: Number(formData.get("featured_order") || 0),
-      display_order: Number(formData.get("display_order") || 0),
-    });
+    const { data, error } = await supabase
+      .from("portfolio_projects")
+      .insert({
+        title,
+        slug,
+        description: String(formData.get("description") || ""),
+        category_id: selectedCategoryId,
+        subcategory_id: selectedSubcategoryId || null,
+        year: String(formData.get("year") || ""),
+        client: String(formData.get("client") || ""),
+        cover_image: coverImage,
+        image_fit: imageFit,
+        image_zoom: imageZoom,
+        image_x: imageX,
+        image_y: imageY,
+        is_featured: formData.get("is_featured") === "on",
+        featured_order: Number(formData.get("featured_order") || 0),
+        display_order: Number(formData.get("display_order") || 0),
+      })
+      .select("id")
+      .single();
 
-    if (error) {
-      setMessage(`❌ Error: ${error.message}`);
+    if (error || !data) {
+      setMessage(`❌ Error: ${error?.message ?? "No fue posible crear el proyecto."}`);
       setLoading(false);
       return;
     }
 
-    setMessage("✅ Proyecto creado correctamente.");
-    setLoading(false);
-    window.location.reload();
+    setMessage("✅ Proyecto creado correctamente. Abriendo edición...");
+    router.push(`/admin/portafolio/${data.id}/editar`);
+    router.refresh();
   }
 
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-neutral-950 p-6">
-      <h2 className="text-2xl font-semibold">Crear proyecto</h2>
+    <div className="rounded-[1.5rem] border border-white/10 bg-neutral-950 p-5 sm:p-6">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-white/30">
+            Información
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold">Datos del proyecto</h2>
+        </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <input
           name="title"
           required
@@ -107,48 +117,50 @@ export default function CreateProjectForm({
           className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
         />
 
-        <select
-          name="category_id"
-          required
-          value={selectedCategoryId}
-          onChange={(event) => {
-            setSelectedCategoryId(event.target.value);
-            setSelectedSubcategoryId("");
-          }}
-          aria-label="Selecciona categoría principal"
-          className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
-        >
-          <option value="" disabled>
-            Selecciona categoría principal
-          </option>
-
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
+        <div className="grid gap-4 md:grid-cols-2">
+          <select
+            name="category_id"
+            required
+            value={selectedCategoryId}
+            onChange={(event) => {
+              setSelectedCategoryId(event.target.value);
+              setSelectedSubcategoryId("");
+            }}
+            aria-label="Selecciona categoría principal"
+            className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
+          >
+            <option value="" disabled>
+              Selecciona categoría principal
             </option>
-          ))}
-        </select>
 
-        <select
-          name="subcategory_id"
-          value={selectedSubcategoryId}
-          onChange={(event) => setSelectedSubcategoryId(event.target.value)}
-          disabled={!selectedCategoryId || filteredSubcategories.length === 0}
-          aria-label="Selecciona subcategoría"
-          className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <option value="">
-            {selectedCategoryId
-              ? "Sin subcategoría / seleccionar después"
-              : "Primero selecciona una categoría"}
-          </option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
 
-          {filteredSubcategories.map((subcategory) => (
-            <option key={subcategory.id} value={subcategory.id}>
-              {subcategory.name}
+          <select
+            name="subcategory_id"
+            value={selectedSubcategoryId}
+            onChange={(event) => setSelectedSubcategoryId(event.target.value)}
+            disabled={!selectedCategoryId || filteredSubcategories.length === 0}
+            aria-label="Selecciona subcategoría"
+            className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <option value="">
+              {selectedCategoryId
+                ? "Sin subcategoría / seleccionar después"
+                : "Primero selecciona una categoría"}
             </option>
-          ))}
-        </select>
+
+            {filteredSubcategories.map((subcategory) => (
+              <option key={subcategory.id} value={subcategory.id}>
+                {subcategory.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <textarea
           name="description"
@@ -158,40 +170,58 @@ export default function CreateProjectForm({
           className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
         />
 
-        <input
-          name="client"
-          placeholder="Cliente"
-          className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
-        />
-
-        <input
-          name="year"
-          placeholder="Año"
-          className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
-        />
-
         <div className="grid gap-4 md:grid-cols-2">
           <input
-            name="display_order"
-            type="number"
-            placeholder="Orden general"
+            name="client"
+            placeholder="Cliente"
             className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
           />
 
           <input
-            name="featured_order"
-            type="number"
-            placeholder="Orden destacado"
+            name="year"
+            placeholder="Año"
             className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
           />
         </div>
 
-        <label className="flex items-center gap-3 text-sm text-white/60">
-          <input name="is_featured" type="checkbox" className="h-4 w-4" />
-          Mostrar como proyecto destacado
-        </label>
+        <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
+          <p className="text-xs uppercase tracking-[0.22em] text-white/30">
+            Organización
+          </p>
 
-        <PortfolioImageUploader value={coverImage} onChange={setCoverImage} />
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <input
+              name="display_order"
+              type="number"
+              defaultValue="0"
+              placeholder="Orden general"
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
+            />
+
+            <input
+              name="featured_order"
+              type="number"
+              defaultValue="0"
+              placeholder="Orden destacado"
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-white/40"
+            />
+          </div>
+
+          <label className="mt-4 flex items-center gap-3 text-sm text-white/60">
+            <input name="is_featured" type="checkbox" className="h-4 w-4" />
+            Mostrar como proyecto destacado
+          </label>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
+          <p className="text-xs uppercase tracking-[0.22em] text-white/30">
+            Portada
+          </p>
+
+          <div className="mt-4">
+            <PortfolioImageUploader value={coverImage} onChange={setCoverImage} />
+          </div>
+        </div>
 
         <ImageAdjustControls
           imageUrl={coverImage}
@@ -210,7 +240,7 @@ export default function CreateProjectForm({
           disabled={loading}
           className="w-full rounded-full bg-white px-6 py-3 text-sm font-medium text-black transition hover:scale-[1.02] disabled:opacity-50"
         >
-          {loading ? "Creando..." : "Crear proyecto"}
+          {loading ? "Creando..." : "Crear y continuar a la galería"}
         </button>
 
         {message && (

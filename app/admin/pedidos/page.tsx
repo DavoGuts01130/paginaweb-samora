@@ -16,6 +16,14 @@ type Props = {
 
 type StoreOrderItem = {
   id: string;
+  product_id: string | null;
+  variant_id: string | null;
+  variant_name: string | null;
+  variant_option_label: string | null;
+  variant_option_value: string | null;
+  variant_sku: string | null;
+  product_category: string | null;
+  product_subcategory: string | null;
   product_name: string;
   product_slug: string | null;
   product_image_url: string | null;
@@ -140,6 +148,16 @@ function formatCOP(value: number | null | undefined) {
   return `$${Number(value ?? 0).toLocaleString("es-CO")}`;
 }
 
+function getItemVariantLabel(item: StoreOrderItem) {
+  const option = [item.variant_option_label, item.variant_option_value]
+    .filter(Boolean)
+    .join(": ");
+
+  return [item.variant_name, option, item.variant_sku ? `SKU: ${item.variant_sku}` : ""]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function formatDateTime(value: string | null | undefined) {
   if (!value) return "Sin fecha";
   return new Date(value).toLocaleString("es-CO", {
@@ -211,7 +229,10 @@ function getOrderItemsSummary(order: StoreOrder) {
   }
 
   return order.store_order_items
-    .map((item) => `• ${item.product_name} x${item.quantity} (${formatCOP(item.total_cop)})`)
+    .map((item) => {
+      const variantLabel = getItemVariantLabel(item);
+      return `• ${item.product_name}${variantLabel ? ` (${variantLabel})` : ""} x${item.quantity} (${formatCOP(item.total_cop)})`;
+    })
     .join("\n");
 }
 
@@ -481,6 +502,14 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
       *,
       store_order_items (
         id,
+        product_id,
+        variant_id,
+        variant_name,
+        variant_option_label,
+        variant_option_value,
+        variant_sku,
+        product_category,
+        product_subcategory,
         product_name,
         product_slug,
         product_image_url,
@@ -770,33 +799,50 @@ export default async function AdminPedidosPage({ searchParams }: Props) {
 
                       <div className="mt-4 space-y-4">
                         {order.store_order_items && order.store_order_items.length > 0 ? (
-                          order.store_order_items.map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex gap-4 border-b border-white/5 pb-4 last:border-0 last:pb-0"
-                            >
-                              {item.product_image_url && (
-                                <img
-                                  src={item.product_image_url}
-                                  alt={item.product_name}
-                                  className="h-16 w-16 shrink-0 rounded-xl object-cover"
-                                />
-                              )}
+                          order.store_order_items.map((item) => {
+                            const variantLabel = getItemVariantLabel(item);
 
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate font-medium">
-                                  {item.product_name}
-                                </p>
-                                <p className="text-sm text-white/45">
-                                  Cantidad: {item.quantity}
+                            return (
+                              <div
+                                key={item.id}
+                                className="flex gap-4 border-b border-white/5 pb-4 last:border-0 last:pb-0"
+                              >
+                                {item.product_image_url && (
+                                  <img
+                                    src={item.product_image_url}
+                                    alt={item.product_name}
+                                    className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                                  />
+                                )}
+
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate font-medium">
+                                    {item.product_name}
+                                  </p>
+
+                                  {variantLabel && (
+                                    <p className="mt-1 text-xs leading-5 text-white/45">
+                                      {variantLabel}
+                                    </p>
+                                  )}
+
+                                  {(item.product_category || item.product_subcategory) && (
+                                    <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-white/25">
+                                      {[item.product_category, item.product_subcategory].filter(Boolean).join(" / ")}
+                                    </p>
+                                  )}
+
+                                  <p className="mt-1 text-sm text-white/45">
+                                    Cantidad: {item.quantity} · Unidad: {formatCOP(item.unit_price_cop)}
+                                  </p>
+                                </div>
+
+                                <p className="shrink-0 text-sm font-semibold">
+                                  {formatCOP(item.total_cop)}
                                 </p>
                               </div>
-
-                              <p className="shrink-0 text-sm font-semibold">
-                                {formatCOP(item.total_cop)}
-                              </p>
-                            </div>
-                          ))
+                            );
+                          })
                         ) : (
                           <p className="text-sm text-white/45">
                             No hay productos asociados a este pedido.
