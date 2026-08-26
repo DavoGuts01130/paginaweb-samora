@@ -442,7 +442,7 @@ export default async function AdminCotizacionesPage({ searchParams }: Props) {
               </form>
 
               <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-white/10 bg-neutral-950">
-                <div className="hidden grid-cols-[minmax(230px,1.1fr)_minmax(170px,0.8fr)_minmax(200px,0.9fr)_150px_155px_150px_80px] gap-4 border-b border-white/10 px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-white/30 xl:grid">
+                <div className="hidden grid-cols-[minmax(195px,1fr)_minmax(145px,0.8fr)_minmax(175px,0.9fr)_125px_130px_130px_110px] gap-4 border-b border-white/10 px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-white/30 xl:grid">
                   <span>Cotización</span>
                   <span>Cliente</span>
                   <span>Servicio</span>
@@ -460,7 +460,7 @@ export default async function AdminCotizacionesPage({ searchParams }: Props) {
                       return (
                         <div
                           key={quote.id}
-                          className="group grid gap-4 px-4 py-4 transition hover:bg-white/[0.025] sm:px-5 xl:grid-cols-[minmax(230px,1.1fr)_minmax(170px,0.8fr)_minmax(200px,0.9fr)_150px_155px_150px_80px] xl:items-center"
+                          className="group grid gap-4 px-4 py-4 transition hover:bg-white/[0.025] sm:px-5 xl:grid-cols-[minmax(195px,1fr)_minmax(145px,0.8fr)_minmax(175px,0.9fr)_125px_130px_130px_110px] xl:items-center"
                         >
                           <div className="min-w-0">
                             <p className="truncate font-semibold tracking-[-0.02em]">
@@ -551,7 +551,7 @@ export default async function AdminCotizacionesPage({ searchParams }: Props) {
                           <div className="xl:text-right">
                             <Link
                               href={`/admin/cotizaciones/${quote.id}`}
-                              className="inline-flex items-center text-sm text-white/55 transition hover:text-white"
+                              className="inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-full border border-white/15 px-4 py-2 text-sm text-white/70 transition hover:border-white/35 hover:bg-white hover:text-black"
                             >
                               Abrir →
                             </Link>
