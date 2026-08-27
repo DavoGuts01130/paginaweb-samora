@@ -686,6 +686,12 @@ function PriceField({
   onChange: (value: number) => void;
   money?: boolean;
 }) {
+  const [draftValue, setDraftValue] = useState(String(value));
+
+  useEffect(() => {
+    setDraftValue(String(value));
+  }, [value]);
+
   return (
     <label>
       <span className="mb-2 block text-[10px] uppercase tracking-[0.2em] text-white/35">
@@ -695,13 +701,26 @@ function PriceField({
         type="number"
         min="0"
         step="1"
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
+        value={draftValue}
+        onChange={(event) => {
+          const nextValue = event.target.value;
+          setDraftValue(nextValue);
+
+          if (nextValue !== "") {
+            onChange(Math.max(Number(nextValue) || 0, 0));
+          }
+        }}
+        onBlur={() => {
+          if (draftValue === "") {
+            setDraftValue("0");
+            onChange(0);
+          }
+        }}
         className={inputClass}
       />
-      {money && value > 0 && (
+      {money && Number(draftValue) > 0 && (
         <span className="mt-1 block text-[11px] text-white/25">
-          {formatCOP(value)}
+          {formatCOP(Number(draftValue))}
         </span>
       )}
     </label>
@@ -721,6 +740,12 @@ function ConfigNumberField({
   text?: boolean;
   placeholder?: string;
 }) {
+  const [draftValue, setDraftValue] = useState(String(value));
+
+  useEffect(() => {
+    setDraftValue(String(value));
+  }, [value]);
+
   return (
     <label>
       <span className="mb-2 block text-[10px] uppercase tracking-[0.2em] text-white/35">
@@ -730,8 +755,21 @@ function ConfigNumberField({
         type={text ? "text" : "number"}
         min={text ? undefined : 0}
         step={text ? undefined : 1}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
+        value={draftValue}
+        onChange={(event) => {
+          const nextValue = event.target.value;
+          setDraftValue(nextValue);
+
+          if (text || nextValue !== "") {
+            onChange(nextValue);
+          }
+        }}
+        onBlur={() => {
+          if (!text && draftValue === "") {
+            setDraftValue("0");
+            onChange("0");
+          }
+        }}
         placeholder={placeholder}
         className={inputClass}
       />
