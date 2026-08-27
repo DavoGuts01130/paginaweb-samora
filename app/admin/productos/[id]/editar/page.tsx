@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import Navbar from "@/components/Navbar";
 import EditProductForm from "@/components/EditProductForm";
 import DeleteProductButton from "@/components/DeleteProductButton";
+import VariantPricingFields from "@/components/VariantPricingFields";
 import { createClient } from "@/lib/supabase/server";
 
 type Props = {
@@ -134,7 +135,12 @@ async function createVariantAction(formData: FormData) {
   const productId = String(formData.get("product_id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const cost = parseMoney(formData.get("supplier_cost_cop"));
-  const price = parseMoney(formData.get("price_cop"));
+  const markupPercent = Math.max(
+    parseNumber(formData.get("markup_percent"), 30),
+    0
+  );
+  const typedPrice = parseMoney(formData.get("price_cop"));
+  const price = typedPrice || getSuggestedPrice(cost, markupPercent);
   const stock = Math.max(parseNumber(formData.get("stock"), 0), 0);
 
   if (!productId || !name || price <= 0) return;
@@ -148,8 +154,6 @@ async function createVariantAction(formData: FormData) {
     .maybeSingle();
 
   const nextSortOrder = Number(lastVariant?.sort_order ?? -1) + 1;
-  const markupPercent =
-    cost > 0 ? Math.max(Math.round(((price - cost) / cost) * 100), 0) : 0;
 
   await supabase.from("product_variants").insert({
     product_id: productId,
@@ -182,13 +186,15 @@ async function updateVariantAction(formData: FormData) {
   const variantId = String(formData.get("variant_id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
   const cost = parseMoney(formData.get("supplier_cost_cop"));
-  const price = parseMoney(formData.get("price_cop"));
+  const markupPercent = Math.max(
+    parseNumber(formData.get("markup_percent"), 30),
+    0
+  );
+  const typedPrice = parseMoney(formData.get("price_cop"));
+  const price = typedPrice || getSuggestedPrice(cost, markupPercent);
   const stock = Math.max(parseNumber(formData.get("stock"), 0), 0);
 
   if (!productId || !variantId || !name || price <= 0) return;
-
-  const markupPercent =
-    cost > 0 ? Math.max(Math.round(((price - cost) / cost) * 100), 0) : 0;
 
   await supabase
     .from("product_variants")
@@ -441,7 +447,7 @@ export default async function EditProductPage({ params }: Props) {
                       <div className="border-t border-white/10 p-4">
                         <form
                           action={updateVariantAction}
-                          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+                          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5"
                         >
                           <input type="hidden" name="product_id" value={currentProduct.id} />
                           <input type="hidden" name="variant_id" value={variant.id} />
@@ -456,28 +462,11 @@ export default async function EditProductPage({ params }: Props) {
                             />
                           </AdminField>
 
-                          <AdminField label="Costo proveedor">
-                            <input
-                              name="supplier_cost_cop"
-                              type="number"
-                              min="0"
-                              step="1000"
-                              defaultValue={variant.supplier_cost_cop ?? ""}
-                              className={inputClass}
-                            />
-                          </AdminField>
-
-                          <AdminField label="Precio Samora">
-                            <input
-                              name="price_cop"
-                              type="number"
-                              min="0"
-                              step="1000"
-                              required
-                              defaultValue={variant.price_cop ?? ""}
-                              className={inputClass}
-                            />
-                          </AdminField>
+                          <VariantPricingFields
+                            defaultCost={variant.supplier_cost_cop ?? 0}
+                            defaultMarkup={variant.markup_percent ?? 30}
+                            defaultPrice={variant.price_cop ?? 0}
+                          />
 
                           <AdminField label="Stock">
                             <input
@@ -490,7 +479,7 @@ export default async function EditProductPage({ params }: Props) {
                             />
                           </AdminField>
 
-                          <label className="flex min-h-12 items-center gap-3 rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white/60 sm:col-span-2 lg:col-span-4">
+                          <label className="flex min-h-12 items-center gap-3 rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white/60 sm:col-span-2 lg:col-span-5">
                             <input
                               name="is_active"
                               type="checkbox"
@@ -501,7 +490,7 @@ export default async function EditProductPage({ params }: Props) {
 
                           <button
                             type="submit"
-                            className="min-h-12 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2 lg:col-span-4"
+                            className="min-h-12 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2 lg:col-span-5"
                           >
                             Guardar variante
                           </button>
@@ -530,7 +519,7 @@ export default async function EditProductPage({ params }: Props) {
 
                 <form
                   action={createVariantAction}
-                  className="grid gap-4 border-t border-white/10 p-4 sm:grid-cols-2 lg:grid-cols-4"
+                  className="grid gap-4 border-t border-white/10 p-4 sm:grid-cols-2 lg:grid-cols-5"
                 >
                   <input type="hidden" name="product_id" value={currentProduct.id} />
 
@@ -543,28 +532,11 @@ export default async function EditProductPage({ params }: Props) {
                     />
                   </AdminField>
 
-                  <AdminField label="Costo proveedor">
-                    <input
-                      name="supplier_cost_cop"
-                      type="number"
-                      min="0"
-                      step="1000"
-                      placeholder="Ej: 41000"
-                      className={inputClass}
-                    />
-                  </AdminField>
-
-                  <AdminField label="Precio Samora">
-                    <input
-                      name="price_cop"
-                      type="number"
-                      min="0"
-                      step="1000"
-                      required
-                      placeholder="Ej: 54000"
-                      className={inputClass}
-                    />
-                  </AdminField>
+                  <VariantPricingFields
+                    defaultCost={0}
+                    defaultMarkup={30}
+                    defaultPrice={0}
+                  />
 
                   <AdminField label="Stock">
                     <input
@@ -579,7 +551,7 @@ export default async function EditProductPage({ params }: Props) {
 
                   <button
                     type="submit"
-                    className="min-h-12 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2 lg:col-span-4"
+                    className="min-h-12 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2 lg:col-span-5"
                   >
                     Agregar variante
                   </button>
