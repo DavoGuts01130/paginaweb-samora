@@ -133,30 +133,34 @@ async function createVariantAction(formData: FormData) {
   const supabase = await getAdminSupabase();
   const productId = String(formData.get("product_id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
-  const option1Value = String(formData.get("option_1_value") ?? "").trim();
   const cost = parseMoney(formData.get("supplier_cost_cop"));
-  const markupPercent = parseNumber(formData.get("markup_percent"), 30);
-  const typedPrice = parseMoney(formData.get("price_cop"));
-  const price = typedPrice || getSuggestedPrice(cost, markupPercent);
+  const price = parseMoney(formData.get("price_cop"));
+  const stock = Math.max(parseNumber(formData.get("stock"), 0), 0);
 
-  if (!productId || !name || !option1Value || price <= 0) return;
+  if (!productId || !name || price <= 0) return;
+
+  const { data: lastVariant } = await supabase
+    .from("product_variants")
+    .select("sort_order")
+    .eq("product_id", productId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextSortOrder = Number(lastVariant?.sort_order ?? -1) + 1;
+  const markupPercent =
+    cost > 0 ? Math.max(Math.round(((price - cost) / cost) * 100), 0) : 0;
 
   await supabase.from("product_variants").insert({
     product_id: productId,
     name,
-    sku: String(formData.get("sku") ?? "").trim() || null,
-    option_1_label:
-      String(formData.get("option_1_label") ?? "Tamaño").trim() || "Tamaño",
-    option_1_value: option1Value,
-    option_2_label:
-      String(formData.get("option_2_label") ?? "").trim() || null,
-    option_2_value:
-      String(formData.get("option_2_value") ?? "").trim() || null,
+    option_1_label: "Tamaño",
+    option_1_value: name,
     supplier_cost_cop: cost || null,
     markup_percent: markupPercent,
     price_cop: price,
-    stock: Math.max(parseNumber(formData.get("stock"), 0), 0),
-    sort_order: parseNumber(formData.get("sort_order"), 0),
+    stock,
+    sort_order: nextSortOrder,
     is_active: true,
   });
 
@@ -176,30 +180,26 @@ async function updateVariantAction(formData: FormData) {
   const supabase = await getAdminSupabase();
   const productId = String(formData.get("product_id") ?? "");
   const variantId = String(formData.get("variant_id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
   const cost = parseMoney(formData.get("supplier_cost_cop"));
-  const markupPercent = parseNumber(formData.get("markup_percent"), 30);
-  const typedPrice = parseMoney(formData.get("price_cop"));
-  const price = typedPrice || getSuggestedPrice(cost, markupPercent);
+  const price = parseMoney(formData.get("price_cop"));
+  const stock = Math.max(parseNumber(formData.get("stock"), 0), 0);
 
-  if (!productId || !variantId || price <= 0) return;
+  if (!productId || !variantId || !name || price <= 0) return;
+
+  const markupPercent =
+    cost > 0 ? Math.max(Math.round(((price - cost) / cost) * 100), 0) : 0;
 
   await supabase
     .from("product_variants")
     .update({
-      name: String(formData.get("name") ?? "").trim() || null,
-      sku: String(formData.get("sku") ?? "").trim() || null,
-      option_1_label:
-        String(formData.get("option_1_label") ?? "Tamaño").trim() || "Tamaño",
-      option_1_value: String(formData.get("option_1_value") ?? "").trim(),
-      option_2_label:
-        String(formData.get("option_2_label") ?? "").trim() || null,
-      option_2_value:
-        String(formData.get("option_2_value") ?? "").trim() || null,
+      name,
+      option_1_label: "Tamaño",
+      option_1_value: name,
       supplier_cost_cop: cost || null,
       markup_percent: markupPercent,
       price_cop: price,
-      stock: Math.max(parseNumber(formData.get("stock"), 0), 0),
-      sort_order: parseNumber(formData.get("sort_order"), 0),
+      stock,
       is_active: formData.get("is_active") === "on",
       updated_at: new Date().toISOString(),
     })
@@ -396,8 +396,8 @@ export default async function EditProductPage({ params }: Props) {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <SectionHeader
                   eyebrow="Variantes"
-                  title="Opciones, precios y stock"
-                  description="Edita solo la variante que necesites o agrega una nueva al producto."
+                  title="Tamaños, precios y stock"
+                  description="Cada variante solo necesita un nombre, costo de proveedor, precio de venta y stock."
                 />
 
                 <span className="w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/45">
@@ -441,31 +441,17 @@ export default async function EditProductPage({ params }: Props) {
                       <div className="border-t border-white/10 p-4">
                         <form
                           action={updateVariantAction}
-                          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
                         >
                           <input type="hidden" name="product_id" value={currentProduct.id} />
                           <input type="hidden" name="variant_id" value={variant.id} />
 
-                          <AdminField label="Nombre">
+                          <AdminField label="Nombre / tamaño">
                             <input
                               name="name"
-                              defaultValue={variant.name ?? ""}
-                              className={inputClass}
-                            />
-                          </AdminField>
-
-                          <AdminField label="Etiqueta 1">
-                            <input
-                              name="option_1_label"
-                              defaultValue={variant.option_1_label ?? "Tamaño"}
-                              className={inputClass}
-                            />
-                          </AdminField>
-
-                          <AdminField label="Valor 1">
-                            <input
-                              name="option_1_value"
-                              defaultValue={variant.option_1_value ?? ""}
+                              required
+                              placeholder="Ej: 20x30"
+                              defaultValue={variant.name ?? variant.option_1_value ?? ""}
                               className={inputClass}
                             />
                           </AdminField>
@@ -487,6 +473,7 @@ export default async function EditProductPage({ params }: Props) {
                               type="number"
                               min="0"
                               step="1000"
+                              required
                               defaultValue={variant.price_cop ?? ""}
                               className={inputClass}
                             />
@@ -497,66 +484,24 @@ export default async function EditProductPage({ params }: Props) {
                               name="stock"
                               type="number"
                               min="0"
+                              required
                               defaultValue={variant.stock ?? 0}
                               className={inputClass}
                             />
                           </AdminField>
 
-                          <AdminField label="SKU">
-                            <input
-                              name="sku"
-                              defaultValue={variant.sku ?? ""}
-                              className={inputClass}
-                            />
-                          </AdminField>
-
-                          <AdminField label="Etiqueta 2">
-                            <input
-                              name="option_2_label"
-                              defaultValue={variant.option_2_label ?? ""}
-                              className={inputClass}
-                            />
-                          </AdminField>
-
-                          <AdminField label="Valor 2">
-                            <input
-                              name="option_2_value"
-                              defaultValue={variant.option_2_value ?? ""}
-                              className={inputClass}
-                            />
-                          </AdminField>
-
-                          <AdminField label="Margen %">
-                            <input
-                              name="markup_percent"
-                              type="number"
-                              min="0"
-                              defaultValue={variant.markup_percent ?? 30}
-                              className={inputClass}
-                            />
-                          </AdminField>
-
-                          <AdminField label="Orden">
-                            <input
-                              name="sort_order"
-                              type="number"
-                              defaultValue={variant.sort_order ?? 0}
-                              className={inputClass}
-                            />
-                          </AdminField>
-
-                          <label className="flex min-h-12 items-center gap-3 rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white/60">
+                          <label className="flex min-h-12 items-center gap-3 rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white/60 sm:col-span-2 lg:col-span-4">
                             <input
                               name="is_active"
                               type="checkbox"
                               defaultChecked={variant.is_active !== false}
                             />
-                            Variante activa
+                            Mostrar esta variante en la tienda
                           </label>
 
                           <button
                             type="submit"
-                            className="min-h-12 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2 lg:col-span-3"
+                            className="min-h-12 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2 lg:col-span-4"
                           >
                             Guardar variante
                           </button>
@@ -585,26 +530,15 @@ export default async function EditProductPage({ params }: Props) {
 
                 <form
                   action={createVariantAction}
-                  className="grid gap-4 border-t border-white/10 p-4 sm:grid-cols-2 lg:grid-cols-3"
+                  className="grid gap-4 border-t border-white/10 p-4 sm:grid-cols-2 lg:grid-cols-4"
                 >
                   <input type="hidden" name="product_id" value={currentProduct.id} />
 
-                  <AdminField label="Nombre">
-                    <input name="name" placeholder="20x30" className={inputClass} />
-                  </AdminField>
-
-                  <AdminField label="Etiqueta 1">
+                  <AdminField label="Nombre / tamaño">
                     <input
-                      name="option_1_label"
-                      defaultValue="Tamaño"
-                      className={inputClass}
-                    />
-                  </AdminField>
-
-                  <AdminField label="Valor 1">
-                    <input
-                      name="option_1_value"
-                      placeholder="20x30"
+                      name="name"
+                      required
+                      placeholder="Ej: 20x30"
                       className={inputClass}
                     />
                   </AdminField>
@@ -615,6 +549,7 @@ export default async function EditProductPage({ params }: Props) {
                       type="number"
                       min="0"
                       step="1000"
+                      placeholder="Ej: 41000"
                       className={inputClass}
                     />
                   </AdminField>
@@ -625,7 +560,8 @@ export default async function EditProductPage({ params }: Props) {
                       type="number"
                       min="0"
                       step="1000"
-                      placeholder="Opcional"
+                      required
+                      placeholder="Ej: 54000"
                       className={inputClass}
                     />
                   </AdminField>
@@ -635,45 +571,7 @@ export default async function EditProductPage({ params }: Props) {
                       name="stock"
                       type="number"
                       min="0"
-                      defaultValue="0"
-                      className={inputClass}
-                    />
-                  </AdminField>
-
-                  <AdminField label="SKU">
-                    <input name="sku" placeholder="Opcional" className={inputClass} />
-                  </AdminField>
-
-                  <AdminField label="Etiqueta 2">
-                    <input
-                      name="option_2_label"
-                      placeholder="Ej: Hojas"
-                      className={inputClass}
-                    />
-                  </AdminField>
-
-                  <AdminField label="Valor 2">
-                    <input
-                      name="option_2_value"
-                      placeholder="Ej: 10 hojas"
-                      className={inputClass}
-                    />
-                  </AdminField>
-
-                  <AdminField label="Margen %">
-                    <input
-                      name="markup_percent"
-                      type="number"
-                      min="0"
-                      defaultValue="30"
-                      className={inputClass}
-                    />
-                  </AdminField>
-
-                  <AdminField label="Orden">
-                    <input
-                      name="sort_order"
-                      type="number"
+                      required
                       defaultValue="0"
                       className={inputClass}
                     />
@@ -681,7 +579,7 @@ export default async function EditProductPage({ params }: Props) {
 
                   <button
                     type="submit"
-                    className="min-h-12 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2 lg:col-span-3"
+                    className="min-h-12 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2 lg:col-span-4"
                   >
                     Agregar variante
                   </button>
