@@ -54,7 +54,7 @@ export default function VariantPricingFields({
           name="supplier_cost_cop"
           type="number"
           min="0"
-          step="1000"
+          step="1"
           value={cost}
           onChange={(event) => handleCostChange(event.target.value)}
           placeholder="Ej: 41000"
@@ -86,7 +86,7 @@ export default function VariantPricingFields({
           name="price_cop"
           type="number"
           min="0"
-          step="1000"
+          step="1"
           required
           value={price}
           onChange={(event) => setPrice(event.target.value)}
