@@ -3,6 +3,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getConfigurationPriceRange,
+  normalizeConfiguration,
+  toSaleMode,
+  type ProductConfiguration,
+} from "@/lib/product-config";
 
 export const metadata: Metadata = {
   title: "Tienda de productos fotográficos",
@@ -53,6 +59,7 @@ type Product = {
   category_id: string | null;
   subcategory_id: string | null;
   has_variants: boolean | null;
+  product_type: string | null;
   created_at: string | null;
 };
 
@@ -121,8 +128,9 @@ function getVariantsForProduct(productId: string, variants: ProductVariant[]) {
 
 function getProductStock(product: Product, variants: ProductVariant[]) {
   const productVariants = getVariantsForProduct(product.id, variants);
+  const mode = toSaleMode(product.product_type, product.has_variants);
 
-  if (product.has_variants && productVariants.length > 0) {
+  if (mode === "variant" && productVariants.length > 0) {
     return productVariants.reduce(
       (sum, variant) => sum + Math.max(Number(variant.stock ?? 0), 0),
       0
@@ -132,39 +140,68 @@ function getProductStock(product: Product, variants: ProductVariant[]) {
   return Math.max(Number(product.stock ?? 0), 0);
 }
 
-function getProductPrices(product: Product, variants: ProductVariant[]) {
+function getProductPrices(
+  product: Product,
+  variants: ProductVariant[],
+  configurationsByProductId: Map<string, ProductConfiguration>
+) {
+  const mode = toSaleMode(product.product_type, product.has_variants);
+
+  if (mode === "configurable") {
+    const range = getConfigurationPriceRange(
+      configurationsByProductId.get(product.id)
+    );
+
+    if (range.min > 0) {
+      return range.min === range.max
+        ? [range.min]
+        : [range.min, range.max];
+    }
+  }
+
   const productVariants = getVariantsForProduct(product.id, variants).filter(
     (variant) => Number(variant.price_cop ?? 0) > 0
   );
 
-  if (product.has_variants && productVariants.length > 0) {
+  if (mode === "variant" && productVariants.length > 0) {
     return productVariants.map((variant) => Number(variant.price_cop ?? 0));
   }
 
   return [Number(product.price ?? 0)].filter((price) => price > 0);
 }
 
-function getProductSortPrice(product: Product, variants: ProductVariant[]) {
-  const prices = getProductPrices(product, variants);
+function getProductSortPrice(
+  product: Product,
+  variants: ProductVariant[],
+  configurationsByProductId: Map<string, ProductConfiguration>
+) {
+  const prices = getProductPrices(
+    product,
+    variants,
+    configurationsByProductId
+  );
   if (prices.length === 0) return 0;
   return Math.min(...prices);
 }
 
-function getPriceLabel(product: Product, variants: ProductVariant[]) {
-  const productVariants = getVariantsForProduct(product.id, variants).filter(
-    (variant) => Number(variant.price_cop ?? 0) > 0
+function getPriceLabel(
+  product: Product,
+  variants: ProductVariant[],
+  configurationsByProductId: Map<string, ProductConfiguration>
+) {
+  const prices = getProductPrices(
+    product,
+    variants,
+    configurationsByProductId
   );
 
-  if (product.has_variants && productVariants.length > 0) {
-    const prices = productVariants.map((variant) => Number(variant.price_cop ?? 0));
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
+  if (prices.length === 0) return formatCOP(product.price);
 
-    if (min === max) return formatCOP(min);
-    return `${formatCOP(min)} - ${formatCOP(max)}`;
-  }
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
 
-  return formatCOP(product.price);
+  if (min === max) return formatCOP(min);
+  return `${formatCOP(min)} - ${formatCOP(max)}`;
 }
 
 function getStockMeta(stock: number) {
@@ -238,21 +275,23 @@ function sortProducts({
   categoriesById,
   subcategoriesById,
   variants,
+  configurationsByProductId,
   order,
 }: {
   products: Product[];
   categoriesById: Map<string, ProductCategory>;
   subcategoriesById: Map<string, ProductSubcategory>;
   variants: ProductVariant[];
+  configurationsByProductId: Map<string, ProductConfiguration>;
   order: SortOption;
 }) {
   return [...products].sort((a, b) => {
     if (order === "precio_asc") {
-      return getProductSortPrice(a, variants) - getProductSortPrice(b, variants);
+      return getProductSortPrice(a, variants, configurationsByProductId) - getProductSortPrice(b, variants, configurationsByProductId);
     }
 
     if (order === "precio_desc") {
-      return getProductSortPrice(b, variants) - getProductSortPrice(a, variants);
+      return getProductSortPrice(b, variants, configurationsByProductId) - getProductSortPrice(a, variants, configurationsByProductId);
     }
 
     if (order === "nombre") {
@@ -314,8 +353,13 @@ export default async function TiendaPage({ searchParams }: Props) {
 
   const supabase = await createClient();
 
-  const [{ data: products }, { data: categories }, { data: subcategories }, { data: variants }] =
-    await Promise.all([
+  const [
+    { data: products },
+    { data: categories },
+    { data: subcategories },
+    { data: variants },
+    { data: configurations },
+  ] = await Promise.all([
       supabase
         .from("products")
         .select("*")
@@ -336,12 +380,30 @@ export default async function TiendaPage({ searchParams }: Props) {
         .select("id, product_id, name, option_1_label, option_1_value, option_2_label, option_2_value, price_cop, stock, is_active")
         .eq("is_active", true)
         .order("sort_order", { ascending: true }),
+      supabase
+        .from("product_configurations")
+        .select("product_id, selectors, quantity_config, pricing_rules, is_active")
+        .eq("is_active", true),
     ]);
 
   const rawProductList = (products ?? []) as Product[];
   const categoryList = (categories ?? []) as ProductCategory[];
   const subcategoryList = (subcategories ?? []) as ProductSubcategory[];
   const variantList = (variants ?? []) as ProductVariant[];
+  const configurationsByProductId = new Map<string, ProductConfiguration>();
+
+  for (const rawConfiguration of configurations ?? []) {
+    const configuration = normalizeConfiguration(
+      rawConfiguration as ProductConfiguration
+    );
+
+    if (configuration?.product_id && configuration.is_active) {
+      configurationsByProductId.set(
+        configuration.product_id,
+        configuration
+      );
+    }
+  }
 
   const categoriesById = new Map(categoryList.map((category) => [category.id, category]));
   const subcategoriesById = new Map(
@@ -386,6 +448,7 @@ export default async function TiendaPage({ searchParams }: Props) {
     categoriesById,
     subcategoriesById,
     variants: variantList,
+    configurationsByProductId,
     order: selectedOrder,
   });
 
@@ -631,6 +694,7 @@ export default async function TiendaPage({ searchParams }: Props) {
                         href={buildTiendaHref({ categoria: category.slug, orden: selectedOrder })}
                         products={categoryProducts}
                         variantList={variantList}
+                        configurationsByProductId={configurationsByProductId}
                         categoriesById={categoriesById}
                         subcategoriesById={subcategoriesById}
                         compact
@@ -659,6 +723,7 @@ export default async function TiendaPage({ searchParams }: Props) {
                         })}
                         products={subcategoryProducts}
                         variantList={variantList}
+                        configurationsByProductId={configurationsByProductId}
                         categoriesById={categoriesById}
                         subcategoriesById={subcategoriesById}
                       />
@@ -681,6 +746,7 @@ export default async function TiendaPage({ searchParams }: Props) {
                   <ProductsGrid
                     products={filteredProducts}
                     variantList={variantList}
+                    configurationsByProductId={configurationsByProductId}
                     categoriesById={categoriesById}
                     subcategoriesById={subcategoriesById}
                   />
@@ -729,6 +795,7 @@ function ProductSection({
   href,
   products,
   variantList,
+  configurationsByProductId,
   categoriesById,
   subcategoriesById,
   compact = false,
@@ -738,6 +805,7 @@ function ProductSection({
   href: string;
   products: Product[];
   variantList: ProductVariant[];
+  configurationsByProductId: Map<string, ProductConfiguration>;
   categoriesById: Map<string, ProductCategory>;
   subcategoriesById: Map<string, ProductSubcategory>;
   compact?: boolean;
@@ -774,6 +842,7 @@ function ProductSection({
         <ProductsGrid
           products={visibleProducts}
           variantList={variantList}
+          configurationsByProductId={configurationsByProductId}
           categoriesById={categoriesById}
           subcategoriesById={subcategoriesById}
         />
@@ -785,11 +854,13 @@ function ProductSection({
 function ProductsGrid({
   products,
   variantList,
+  configurationsByProductId,
   categoriesById,
   subcategoriesById,
 }: {
   products: Product[];
   variantList: ProductVariant[];
+  configurationsByProductId: Map<string, ProductConfiguration>;
   categoriesById: Map<string, ProductCategory>;
   subcategoriesById: Map<string, ProductSubcategory>;
 }) {
@@ -800,6 +871,7 @@ function ProductsGrid({
           key={product.id}
           product={product}
           variantList={variantList}
+          configurationsByProductId={configurationsByProductId}
           categoriesById={categoriesById}
           subcategoriesById={subcategoriesById}
         />
@@ -811,11 +883,13 @@ function ProductsGrid({
 function ProductCard({
   product,
   variantList,
+  configurationsByProductId,
   categoriesById,
   subcategoriesById,
 }: {
   product: Product;
   variantList: ProductVariant[];
+  configurationsByProductId: Map<string, ProductConfiguration>;
   categoriesById: Map<string, ProductCategory>;
   subcategoriesById: Map<string, ProductSubcategory>;
 }) {
@@ -874,7 +948,7 @@ function ProductCard({
 
         <div className="mt-5 flex items-end justify-between gap-4">
           <span className="whitespace-nowrap text-xl font-bold tracking-[-0.02em] sm:text-2xl">
-            {getPriceLabel(product, variantList)}
+            {getPriceLabel(product, variantList, configurationsByProductId)}
           </span>
 
           {product.slug ? (

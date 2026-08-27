@@ -3,6 +3,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getConfigurationPriceRange,
+  normalizeConfiguration,
+  toSaleMode,
+  type ProductConfiguration,
+} from "@/lib/product-config";
 
 type Props = {
   searchParams: Promise<{
@@ -30,6 +36,7 @@ type Product = {
   category_id: string | null;
   subcategory_id: string | null;
   has_variants: boolean | null;
+  product_type: string | null;
 };
 
 type ProductCategory = {
@@ -66,8 +73,9 @@ const statusOptions = [
   { value: "poco_stock", label: "Poco stock" },
   { value: "agotados", label: "Agotados" },
   { value: "stock_sano", label: "Stock suficiente" },
-  { value: "con_variantes", label: "Con variantes" },
-  { value: "sin_variantes", label: "Sin variantes" },
+  { value: "con_variantes", label: "Variantes simples" },
+  { value: "configurables", label: "Configurables" },
+  { value: "precio_unico", label: "Precio único" },
 ];
 
 const imageOptions = [
@@ -91,11 +99,12 @@ function getProductVariants(productId: string, variants: ProductVariant[]) {
 }
 
 function getStockValue(product: Product, variants: ProductVariant[]) {
+  const mode = toSaleMode(product.product_type, product.has_variants);
   const productVariants = getProductVariants(product.id, variants).filter(
     (variant) => variant.is_active !== false
   );
 
-  if (product.has_variants && productVariants.length > 0) {
+  if (mode === "variant" && productVariants.length > 0) {
     return productVariants.reduce(
       (sum, variant) => sum + Math.max(Number(variant.stock ?? 0), 0),
       0
@@ -105,16 +114,38 @@ function getStockValue(product: Product, variants: ProductVariant[]) {
   return Math.max(Number(product.stock ?? 0), 0);
 }
 
-function getPriceLabel(product: Product, variants: ProductVariant[]) {
+function getPriceLabel(
+  product: Product,
+  variants: ProductVariant[],
+  configurationsByProductId: Map<string, ProductConfiguration>
+) {
+  const mode = toSaleMode(product.product_type, product.has_variants);
+
+  if (mode === "configurable") {
+    const configuration = configurationsByProductId.get(product.id);
+    const range = getConfigurationPriceRange(configuration);
+
+    if (range.min > 0) {
+      return range.min === range.max
+        ? formatCOP(range.min)
+        : `${formatCOP(range.min)} - ${formatCOP(range.max)}`;
+    }
+  }
+
   const productVariants = getProductVariants(product.id, variants).filter(
-    (variant) => variant.is_active !== false && Number(variant.price_cop ?? 0) > 0
+    (variant) =>
+      variant.is_active !== false && Number(variant.price_cop ?? 0) > 0
   );
 
-  if (product.has_variants && productVariants.length > 0) {
-    const prices = productVariants.map((variant) => Number(variant.price_cop ?? 0));
+  if (mode === "variant" && productVariants.length > 0) {
+    const prices = productVariants.map((variant) =>
+      Number(variant.price_cop ?? 0)
+    );
     const min = Math.min(...prices);
     const max = Math.max(...prices);
-    return min === max ? formatCOP(min) : `${formatCOP(min)} - ${formatCOP(max)}`;
+    return min === max
+      ? formatCOP(min)
+      : `${formatCOP(min)} - ${formatCOP(max)}`;
   }
 
   return formatCOP(product.price);
@@ -196,8 +227,12 @@ function filterProducts(
       (status === "agotados" && stock <= 0) ||
       (status === "poco_stock" && stock > 0 && stock <= LOW_STOCK_LIMIT) ||
       (status === "stock_sano" && stock > LOW_STOCK_LIMIT) ||
-      (status === "con_variantes" && product.has_variants) ||
-      (status === "sin_variantes" && !product.has_variants);
+      (status === "con_variantes" &&
+        toSaleMode(product.product_type, product.has_variants) === "variant") ||
+      (status === "configurables" &&
+        toSaleMode(product.product_type, product.has_variants) === "configurable") ||
+      (status === "precio_unico" &&
+        toSaleMode(product.product_type, product.has_variants) === "single");
 
     const matchesCategory = !categorySlug || category?.slug === categorySlug;
 
@@ -235,18 +270,40 @@ export default async function AdminProductosPage({ searchParams }: Props) {
 
   const supabase = await getAdminSupabase();
 
-  const [{ data: products }, { data: categories }, { data: subcategories }, { data: variants }] =
-    await Promise.all([
+  const [
+    { data: products },
+    { data: categories },
+    { data: subcategories },
+    { data: variants },
+    { data: configurations },
+  ] = await Promise.all([
       supabase.from("products").select("*").order("created_at", { ascending: false }),
       supabase.from("product_categories").select("id, name, slug").order("sort_order", { ascending: true }),
       supabase.from("product_subcategories").select("id, category_id, name, slug").order("sort_order", { ascending: true }),
       supabase.from("product_variants").select("id, product_id, price_cop, stock, is_active, sort_order").order("sort_order", { ascending: true }),
+      supabase
+        .from("product_configurations")
+        .select("product_id, selectors, quantity_config, pricing_rules, is_active"),
     ]);
 
   const productList = (products ?? []) as Product[];
   const categoryList = (categories ?? []) as ProductCategory[];
   const subcategoryList = (subcategories ?? []) as ProductSubcategory[];
   const variantList = (variants ?? []) as ProductVariant[];
+  const configurationsByProductId = new Map<string, ProductConfiguration>();
+
+  for (const rawConfiguration of configurations ?? []) {
+    const configuration = normalizeConfiguration(
+      rawConfiguration as ProductConfiguration
+    );
+
+    if (configuration?.product_id && configuration.is_active) {
+      configurationsByProductId.set(
+        configuration.product_id,
+        configuration
+      );
+    }
+  }
 
   const categoriesById = new Map(categoryList.map((category) => [category.id, category]));
   const subcategoriesById = new Map(
@@ -471,9 +528,21 @@ export default async function AdminProductosPage({ searchParams }: Props) {
                                 {productName}
                               </h3>
 
-                              {product.has_variants && (
+                              {toSaleMode(
+                                product.product_type,
+                                product.has_variants
+                              ) === "variant" && (
                                 <Badge className="border-blue-400/20 bg-blue-400/10 text-blue-200">
                                   Variantes
+                                </Badge>
+                              )}
+
+                              {toSaleMode(
+                                product.product_type,
+                                product.has_variants
+                              ) === "configurable" && (
+                                <Badge className="border-purple-400/20 bg-purple-400/10 text-purple-200">
+                                  Configurable
                                 </Badge>
                               )}
                             </div>
@@ -494,7 +563,7 @@ export default async function AdminProductosPage({ searchParams }: Props) {
                         </div>
 
                         <div className="whitespace-nowrap text-sm font-semibold">
-                          {getPriceLabel(product, variantList)}
+                          {getPriceLabel(product, variantList, configurationsByProductId)}
                         </div>
 
                         <div>

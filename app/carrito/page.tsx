@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useCart } from "@/components/CartProvider";
+import { getSelectedOptionsText } from "@/lib/product-config";
 
 function formatCOP(value: number | null | undefined) {
   return `$${Number(value ?? 0).toLocaleString("es-CO")}`;
@@ -14,13 +15,43 @@ function getVariantText(item: {
   variant_option_value?: string | null;
   variant_sku?: string | null;
 }) {
+  if (
+    item.variant_name &&
+    item.variant_option_value &&
+    item.variant_name.trim().toLowerCase() ===
+      item.variant_option_value.trim().toLowerCase()
+  ) {
+    return [
+      item.variant_name,
+      item.variant_sku ? `SKU: ${item.variant_sku}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
   const option = [item.variant_option_label, item.variant_option_value]
     .filter(Boolean)
     .join(": ");
 
-  return [item.variant_name, option, item.variant_sku ? `SKU: ${item.variant_sku}` : ""]
+  return [
+    item.variant_name,
+    option,
+    item.variant_sku ? `SKU: ${item.variant_sku}` : "",
+  ]
     .filter(Boolean)
     .join(" · ");
+}
+
+function getItemOptionsText(item: {
+  selected_options?: Record<string, string | number> | null;
+  variant_name?: string | null;
+  variant_option_label?: string | null;
+  variant_option_value?: string | null;
+  variant_sku?: string | null;
+}) {
+  const configured = getSelectedOptionsText(item.selected_options);
+  if (configured) return configured;
+  return getVariantText(item);
 }
 
 export default function CarritoPage() {
@@ -31,8 +62,8 @@ export default function CarritoPage() {
 
   const productList = items
     .map((item) => {
-      const variantText = getVariantText(item);
-      return `• ${item.name}${variantText ? ` (${variantText})` : ""} x${item.quantity} (${formatCOP(item.price)})`;
+      const optionText = getItemOptionsText(item);
+      return `• ${item.name}${optionText ? ` (${optionText})` : ""} x${item.quantity} (${formatCOP(item.price)})`;
     })
     .join("\n");
 
@@ -91,7 +122,7 @@ export default function CarritoPage() {
             <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_0.42fr] lg:items-start">
               <div className="space-y-4">
                 {items.map((item) => {
-                  const variantText = getVariantText(item);
+                  const optionText = getItemOptionsText(item);
 
                   return (
                     <article
@@ -114,9 +145,9 @@ export default function CarritoPage() {
                                 {item.name}
                               </h3>
 
-                              {variantText && (
+                              {optionText && (
                                 <p className="mt-2 rounded-2xl border border-white/10 bg-black px-3 py-2 text-sm text-white/55">
-                                  {variantText}
+                                  {optionText}
                                 </p>
                               )}
 

@@ -3,6 +3,15 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useCart } from "@/components/CartProvider";
+import {
+  buildRuleKey,
+  buildSelectedOptions,
+  calculateConfiguredPrice,
+  getDefaultSelections,
+  getRule,
+  normalizeConfiguration,
+  type ProductConfiguration,
+} from "@/lib/product-config";
 
 type Product = {
   id: string;
@@ -36,29 +45,63 @@ function getVariantLabel(variant: ProductVariantForCart) {
   const first = [variant.option_1_label, variant.option_1_value]
     .filter(Boolean)
     .join(": ");
+
   const second = [variant.option_2_label, variant.option_2_value]
     .filter(Boolean)
     .join(": ");
 
-  return [variant.name, first, second].filter(Boolean).join(" · ");
+  const parts = [variant.name, first, second].filter(
+    (value): value is string => Boolean(value)
+  );
+
+  const unique = parts.filter(
+    (value, index) =>
+      parts.findIndex(
+        (other) => other.toLowerCase() === value.toLowerCase()
+      ) === index
+  );
+
+  if (
+    variant.name &&
+    variant.option_1_value &&
+    variant.name.trim().toLowerCase() ===
+      variant.option_1_value.trim().toLowerCase()
+  ) {
+    return [variant.name, second].filter(Boolean).join(" · ");
+  }
+
+  return unique.join(" · ");
 }
 
 export default function AddToCartButton({
   product,
   variants = [],
+  configuration = null,
 }: {
   product: Product;
   variants?: ProductVariantForCart[];
+  configuration?: ProductConfiguration | null;
 }) {
   const { addItem, items } = useCart();
   const [added, setAdded] = useState(false);
 
+  const normalizedConfiguration = useMemo(
+    () => normalizeConfiguration(configuration),
+    [configuration]
+  );
+
+  const hasConfiguration =
+    Boolean(normalizedConfiguration?.is_active) &&
+    Boolean(normalizedConfiguration?.pricing_rules.length);
+
   const activeVariants = useMemo(
     () =>
-      variants
-        .filter((variant) => variant.is_active !== false)
-        .sort((a, b) => Number(b.stock ?? 0) - Number(a.stock ?? 0)),
-    [variants]
+      hasConfiguration
+        ? []
+        : variants
+            .filter((variant) => variant.is_active !== false)
+            .sort((a, b) => Number(b.stock ?? 0) - Number(a.stock ?? 0)),
+    [hasConfiguration, variants]
   );
 
   const firstAvailableVariant =
@@ -74,20 +117,82 @@ export default function AddToCartButton({
     activeVariants.find((variant) => variant.id === selectedVariantId) ??
     firstAvailableVariant;
 
+  const initialSelections = useMemo(
+    () =>
+      normalizedConfiguration
+        ? getDefaultSelections(normalizedConfiguration.selectors)
+        : {},
+    [normalizedConfiguration]
+  );
+
+  const [selectedOptions, setSelectedOptions] =
+    useState<Record<string, string>>(initialSelections);
+
+  const [configurationQuantity, setConfigurationQuantity] = useState(
+    normalizedConfiguration?.quantity_config?.base ??
+      normalizedConfiguration?.quantity_config?.min ??
+      1
+  );
+
+  const selectedRule =
+    normalizedConfiguration && hasConfiguration
+      ? getRule(normalizedConfiguration, selectedOptions)
+      : null;
+
+  const configurationKey =
+    normalizedConfiguration && hasConfiguration
+      ? buildRuleKey(normalizedConfiguration.selectors, selectedOptions)
+      : null;
+
   const hasVariants = activeVariants.length > 0;
-  const cartId = selectedVariant ? `${product.id}:${selectedVariant.id}` : product.id;
-  const currentItem = items.find((item) => item.id === cartId);
-  const currentQuantity = Number(currentItem?.quantity ?? 0);
+
+  const price = hasConfiguration
+    ? selectedRule && normalizedConfiguration
+      ? calculateConfiguredPrice(
+          selectedRule,
+          normalizedConfiguration.quantity_config,
+          configurationQuantity
+        )
+      : 0
+    : Number(
+        selectedVariant ? selectedVariant.price_cop ?? 0 : product.price ?? 0
+      );
+
   const stock = Math.max(
-    Number(selectedVariant ? selectedVariant.stock ?? 0 : product.stock ?? 0),
+    Number(
+      selectedVariant ? selectedVariant.stock ?? 0 : product.stock ?? 0
+    ),
     0
   );
-  const price = Number(selectedVariant ? selectedVariant.price_cop ?? 0 : product.price ?? 0);
-  const isAvailable = stock > 0 && price > 0 && (!hasVariants || !!selectedVariant);
+
+  const cartId = hasConfiguration
+    ? `${product.id}:config:${configurationKey ?? "none"}:${configurationQuantity}`
+    : selectedVariant
+    ? `${product.id}:${selectedVariant.id}`
+    : product.id;
+
+  const currentItem = items.find((item) => item.id === cartId);
+  const currentQuantity = Number(currentItem?.quantity ?? 0);
+
+  const isAvailable =
+    stock > 0 &&
+    price > 0 &&
+    (!hasVariants || !!selectedVariant) &&
+    (!hasConfiguration || !!selectedRule);
+
   const reachedStockLimit = isAvailable && currentQuantity >= stock;
 
   function handleAdd() {
     if (!isAvailable || reachedStockLimit) return;
+
+    const configuredOptions =
+      hasConfiguration && normalizedConfiguration
+        ? buildSelectedOptions(
+            normalizedConfiguration,
+            selectedOptions,
+            configurationQuantity
+          )
+        : null;
 
     addItem({
       id: cartId,
@@ -104,6 +209,11 @@ export default function AddToCartButton({
       variant_sku: selectedVariant?.sku ?? null,
       product_category: product.product_category ?? null,
       product_subcategory: product.product_subcategory ?? null,
+      configuration_key: hasConfiguration ? configurationKey : null,
+      configuration_quantity: hasConfiguration
+        ? configurationQuantity
+        : null,
+      selected_options: configuredOptions,
     });
 
     setAdded(true);
@@ -114,7 +224,9 @@ export default function AddToCartButton({
   }
 
   const buttonLabel = !isAvailable
-    ? hasVariants
+    ? hasConfiguration
+      ? "Configuración no disponible"
+      : hasVariants
       ? "Opción no disponible"
       : "Producto agotado"
     : reachedStockLimit
@@ -123,12 +235,74 @@ export default function AddToCartButton({
 
   return (
     <div className="mt-8 w-full">
+      {hasConfiguration && normalizedConfiguration && (
+        <div className="mb-5 rounded-2xl border border-white/10 bg-black p-4">
+          <p className="text-xs uppercase tracking-[0.25em] text-white/35">
+            Configura tu producto
+          </p>
+
+          <div className="mt-4 grid gap-4">
+            {normalizedConfiguration.selectors.map((selector) => (
+              <label key={selector.id} className="block">
+                <span className="mb-2 block text-xs text-white/45">
+                  {selector.label}
+                </span>
+
+                <select
+                  value={selectedOptions[selector.id] ?? ""}
+                  onChange={(event) =>
+                    setSelectedOptions((current) => ({
+                      ...current,
+                      [selector.id]: event.target.value,
+                    }))
+                  }
+                  className="min-h-12 w-full rounded-xl border border-white/10 bg-neutral-950 px-4 py-3 text-sm text-white outline-none focus:border-white/35"
+                >
+                  {selector.values.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+
+            {normalizedConfiguration.quantity_config && (
+              <label className="block">
+                <span className="mb-2 block text-xs text-white/45">
+                  {normalizedConfiguration.quantity_config.label}
+                </span>
+
+                <QuantitySelector
+                  min={normalizedConfiguration.quantity_config.min}
+                  max={normalizedConfiguration.quantity_config.max}
+                  step={normalizedConfiguration.quantity_config.step}
+                  value={configurationQuantity}
+                  onChange={setConfigurationQuantity}
+                />
+              </label>
+            )}
+          </div>
+
+          <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-xs uppercase tracking-[0.22em] text-white/30">
+              Precio de esta configuración
+            </p>
+
+            <p className="mt-2 text-2xl font-semibold">
+              {formatCOP(price)}
+            </p>
+          </div>
+        </div>
+      )}
+
       {hasVariants && (
         <div className="mb-5 rounded-2xl border border-white/10 bg-black p-4">
           <label className="block">
             <span className="mb-2 block text-xs uppercase tracking-[0.25em] text-white/35">
               Selecciona una opción
             </span>
+
             <select
               value={selectedVariant?.id ?? ""}
               onChange={(event) => setSelectedVariantId(event.target.value)}
@@ -137,12 +311,19 @@ export default function AddToCartButton({
               {activeVariants.map((variant) => {
                 const variantStock = Number(variant.stock ?? 0);
                 const variantPrice = Number(variant.price_cop ?? 0);
-                const label = `${getVariantLabel(variant)} · ${formatCOP(variantPrice)}${
+
+                const label = `${getVariantLabel(
+                  variant
+                )} · ${formatCOP(variantPrice)}${
                   variantStock <= 0 ? " · agotado" : ""
                 }`;
 
                 return (
-                  <option key={variant.id} value={variant.id} disabled={variantStock <= 0 || variantPrice <= 0}>
+                  <option
+                    key={variant.id}
+                    value={variant.id}
+                    disabled={variantStock <= 0 || variantPrice <= 0}
+                  >
                     {label}
                   </option>
                 );
@@ -153,11 +334,20 @@ export default function AddToCartButton({
           {selectedVariant && (
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <p className="text-xs uppercase tracking-[0.22em] text-white/30">Precio</p>
-                <p className="mt-1 font-semibold">{formatCOP(price)}</p>
+                <p className="text-xs uppercase tracking-[0.22em] text-white/30">
+                  Precio
+                </p>
+
+                <p className="mt-1 font-semibold">
+                  {formatCOP(price)}
+                </p>
               </div>
+
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <p className="text-xs uppercase tracking-[0.22em] text-white/30">Disponibles</p>
+                <p className="text-xs uppercase tracking-[0.22em] text-white/30">
+                  Disponibles
+                </p>
+
                 <p className="mt-1 font-semibold">{stock}</p>
               </div>
             </div>
@@ -189,11 +379,67 @@ export default function AddToCartButton({
       {added && (
         <div className="mt-3 rounded-2xl border border-green-400/20 bg-green-400/10 p-3 text-sm text-green-300">
           Producto agregado al carrito.
-          <Link href="/carrito" className="ml-2 font-medium underline underline-offset-4">
+
+          <Link
+            href="/carrito"
+            className="ml-2 font-medium underline underline-offset-4"
+          >
             Ver carrito
           </Link>
         </div>
       )}
     </div>
+  );
+}
+
+function QuantitySelector({
+  min,
+  max,
+  step,
+  value,
+  onChange,
+}: {
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const values: number[] = [];
+
+  for (let current = min; current <= max; current += step) {
+    values.push(current);
+
+    if (values.length > 100) {
+      break;
+    }
+  }
+
+  if (values.length <= 60) {
+    return (
+      <select
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="min-h-12 w-full rounded-xl border border-white/10 bg-neutral-950 px-4 py-3 text-sm text-white outline-none focus:border-white/35"
+      >
+        {values.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  return (
+    <input
+      type="number"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={(event) => onChange(Number(event.target.value))}
+      className="min-h-12 w-full rounded-xl border border-white/10 bg-neutral-950 px-4 py-3 text-sm text-white outline-none focus:border-white/35"
+    />
   );
 }

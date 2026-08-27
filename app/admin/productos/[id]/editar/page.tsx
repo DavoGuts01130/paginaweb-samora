@@ -6,6 +6,8 @@ import Navbar from "@/components/Navbar";
 import EditProductForm from "@/components/EditProductForm";
 import DeleteProductButton from "@/components/DeleteProductButton";
 import VariantPricingFields from "@/components/VariantPricingFields";
+import ProductConfiguratorAdmin from "@/components/ProductConfiguratorAdmin";
+import { toSaleMode, type ProductConfiguration } from "@/lib/product-config";
 import { createClient } from "@/lib/supabase/server";
 
 type Props = {
@@ -29,6 +31,7 @@ type Product = {
   category_id: string | null;
   subcategory_id: string | null;
   has_variants: boolean | null;
+  product_type: string | null;
   supplier_base_cost_cop: number | null;
   markup_percent: number | null;
 };
@@ -107,6 +110,14 @@ async function updateProductCatalogAction(formData: FormData) {
   const productId = String(formData.get("product_id") ?? "");
   const categoryId = String(formData.get("category_id") ?? "");
   const subcategoryId = String(formData.get("subcategory_id") ?? "");
+  const requestedProductType = String(
+    formData.get("product_type") ?? "single"
+  );
+  const productType = ["single", "variant", "configurable"].includes(
+    requestedProductType
+  )
+    ? requestedProductType
+    : "single";
 
   if (!productId) return;
 
@@ -115,7 +126,8 @@ async function updateProductCatalogAction(formData: FormData) {
     .update({
       category_id: categoryId || null,
       subcategory_id: subcategoryId || null,
-      has_variants: formData.get("has_variants") === "on",
+      product_type: productType,
+      has_variants: productType === "variant",
       supplier_base_cost_cop:
         parseMoney(formData.get("supplier_base_cost_cop")) || null,
       markup_percent: parseNumber(formData.get("markup_percent"), 30),
@@ -170,7 +182,7 @@ async function createVariantAction(formData: FormData) {
 
   await supabase
     .from("products")
-    .update({ has_variants: true, updated_at: new Date().toISOString() })
+    .update({ product_type: "variant", has_variants: true, updated_at: new Date().toISOString() })
     .eq("id", productId);
 
   revalidatePath(`/admin/productos/${productId}/editar`);
@@ -241,6 +253,7 @@ export default async function EditProductPage({ params }: Props) {
     { data: categories },
     { data: subcategories },
     { data: variants },
+    { data: configuration },
   ] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).single(),
     supabase
@@ -258,6 +271,11 @@ export default async function EditProductPage({ params }: Props) {
       .select("*")
       .eq("product_id", id)
       .order("sort_order", { ascending: true }),
+    supabase
+      .from("product_configurations")
+      .select("*")
+      .eq("product_id", id)
+      .maybeSingle(),
   ]);
 
   if (error || !product) redirect("/admin/productos");
@@ -266,6 +284,12 @@ export default async function EditProductPage({ params }: Props) {
   const categoryList = (categories ?? []) as ProductCategory[];
   const subcategoryList = (subcategories ?? []) as ProductSubcategory[];
   const variantList = (variants ?? []) as ProductVariant[];
+  const productConfiguration =
+    (configuration as ProductConfiguration | null) ?? null;
+  const saleMode = toSaleMode(
+    currentProduct.product_type,
+    currentProduct.has_variants
+  );
 
   const productName =
     currentProduct.name ?? currentProduct.title ?? "Producto sin nombre";
@@ -319,8 +343,8 @@ export default async function EditProductPage({ params }: Props) {
             <section className="rounded-[1.5rem] border border-white/10 bg-neutral-950 p-5 sm:p-6">
               <SectionHeader
                 eyebrow="Clasificación comercial"
-                title="Categoría, margen y variantes"
-                description="Organiza el producto dentro del catálogo y conserva la información comercial interna."
+                title="Categoría y forma de venta"
+                description="Organiza el producto y define si usa precio único, variantes simples o un configurador de precio."
               />
 
               <form action={updateProductCatalogAction} className="mt-6">
@@ -357,6 +381,26 @@ export default async function EditProductPage({ params }: Props) {
                     </select>
                   </AdminField>
 
+                  <AdminField label="Forma de venta">
+                    <select
+                      name="product_type"
+                      defaultValue={saleMode}
+                      className={inputClass}
+                    >
+                      <option value="single">Precio único</option>
+                      <option value="variant">Variantes simples</option>
+                      <option value="configurable">Producto configurable</option>
+                    </select>
+                  </AdminField>
+
+                  <div className="rounded-xl border border-white/10 bg-black p-4 text-sm leading-6 text-white/45">
+                    {saleMode === "single"
+                      ? "Un solo precio y stock para todo el producto."
+                      : saleMode === "variant"
+                      ? "Opciones sencillas como 20x30, 30x40, Lujo o Sencillo."
+                      : "El precio depende de selectores y/o una cantidad, por ejemplo diseño + tipo de hoja + número de hojas."}
+                  </div>
+
                   <AdminField label="Costo base proveedor">
                     <input
                       name="supplier_base_cost_cop"
@@ -380,15 +424,6 @@ export default async function EditProductPage({ params }: Props) {
                   </AdminField>
                 </div>
 
-                <label className="mt-4 flex items-center gap-3 rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white/65">
-                  <input
-                    name="has_variants"
-                    type="checkbox"
-                    defaultChecked={Boolean(currentProduct.has_variants)}
-                  />
-                  Este producto maneja variantes / tamaños
-                </label>
-
                 <button
                   type="submit"
                   className="mt-5 min-h-12 rounded-full bg-white px-6 py-3 text-sm font-medium text-black transition hover:scale-[1.02]"
@@ -398,166 +433,185 @@ export default async function EditProductPage({ params }: Props) {
               </form>
             </section>
 
-            <section className="rounded-[1.5rem] border border-white/10 bg-neutral-950 p-5 sm:p-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            {saleMode === "variant" && (
+              <section className="rounded-[1.5rem] border border-white/10 bg-neutral-950 p-5 sm:p-6">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                              <SectionHeader
+                                eyebrow="Variantes"
+                                title="Tamaños, precios y stock"
+                                description="Cada variante solo necesita un nombre, costo de proveedor, precio de venta y stock."
+                              />
+
+                              <span className="w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/45">
+                                {variantList.length} {variantList.length === 1 ? "variante" : "variantes"}
+                              </span>
+                            </div>
+
+                            {variantList.length > 0 && (
+                              <div className="mt-6 space-y-3">
+                                {variantList.map((variant) => (
+                                  <details
+                                    key={variant.id}
+                                    className="group rounded-2xl border border-white/10 bg-black/40"
+                                  >
+                                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 [&::-webkit-details-marker]:hidden">
+                                      <div className="min-w-0">
+                                        <p className="truncate font-medium">
+                                          {variant.name ?? variant.option_1_value ?? "Variante"}
+                                        </p>
+                                        <p className="mt-1 text-xs text-white/40">
+                                          ${Number(variant.price_cop ?? 0).toLocaleString("es-CO")} · Stock {Number(variant.stock ?? 0)}
+                                        </p>
+                                      </div>
+
+                                      <div className="flex items-center gap-3">
+                                        <span
+                                          className={`rounded-full border px-2.5 py-1 text-[10px] ${
+                                            variant.is_active !== false
+                                              ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+                                              : "border-white/10 bg-white/[0.04] text-white/45"
+                                          }`}
+                                        >
+                                          {variant.is_active !== false ? "Activa" : "Oculta"}
+                                        </span>
+                                        <span className="text-sm text-white/40 transition group-open:rotate-180">
+                                          ↓
+                                        </span>
+                                      </div>
+                                    </summary>
+
+                                    <div className="border-t border-white/10 p-4">
+                                      <form
+                                        action={updateVariantAction}
+                                        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5"
+                                      >
+                                        <input type="hidden" name="product_id" value={currentProduct.id} />
+                                        <input type="hidden" name="variant_id" value={variant.id} />
+
+                                        <AdminField label="Nombre / tamaño">
+                                          <input
+                                            name="name"
+                                            required
+                                            placeholder="Ej: 20x30"
+                                            defaultValue={variant.name ?? variant.option_1_value ?? ""}
+                                            className={inputClass}
+                                          />
+                                        </AdminField>
+
+                                        <VariantPricingFields
+                                          defaultCost={variant.supplier_cost_cop ?? 0}
+                                          defaultMarkup={variant.markup_percent ?? 30}
+                                          defaultPrice={variant.price_cop ?? 0}
+                                        />
+
+                                        <AdminField label="Stock">
+                                          <input
+                                            name="stock"
+                                            type="number"
+                                            min="0"
+                                            required
+                                            defaultValue={variant.stock ?? 0}
+                                            className={inputClass}
+                                          />
+                                        </AdminField>
+
+                                        <label className="flex min-h-12 items-center gap-3 rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white/60 sm:col-span-2 lg:col-span-5">
+                                          <input
+                                            name="is_active"
+                                            type="checkbox"
+                                            defaultChecked={variant.is_active !== false}
+                                          />
+                                          Mostrar esta variante en la tienda
+                                        </label>
+
+                                        <button
+                                          type="submit"
+                                          className="min-h-12 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2 lg:col-span-5"
+                                        >
+                                          Guardar variante
+                                        </button>
+                                      </form>
+
+                                      <form action={deleteVariantAction} className="mt-3">
+                                        <input type="hidden" name="product_id" value={currentProduct.id} />
+                                        <input type="hidden" name="variant_id" value={variant.id} />
+                                        <button
+                                          type="submit"
+                                          className="text-sm text-red-300 transition hover:text-red-200"
+                                        >
+                                          Eliminar variante
+                                        </button>
+                                      </form>
+                                    </div>
+                                  </details>
+                                ))}
+                              </div>
+                            )}
+
+                            <details className="group mt-6 rounded-2xl border border-dashed border-white/15 bg-black/40">
+                              <summary className="cursor-pointer list-none px-4 py-4 text-sm font-medium text-white/70 transition hover:text-white [&::-webkit-details-marker]:hidden">
+                                + Agregar nueva variante
+                              </summary>
+
+                              <form
+                                action={createVariantAction}
+                                className="grid gap-4 border-t border-white/10 p-4 sm:grid-cols-2 lg:grid-cols-5"
+                              >
+                                <input type="hidden" name="product_id" value={currentProduct.id} />
+
+                                <AdminField label="Nombre / tamaño">
+                                  <input
+                                    name="name"
+                                    required
+                                    placeholder="Ej: 20x30"
+                                    className={inputClass}
+                                  />
+                                </AdminField>
+
+                                <VariantPricingFields
+                                  defaultCost={0}
+                                  defaultMarkup={30}
+                                  defaultPrice={0}
+                                />
+
+                                <AdminField label="Stock">
+                                  <input
+                                    name="stock"
+                                    type="number"
+                                    min="0"
+                                    required
+                                    defaultValue="0"
+                                    className={inputClass}
+                                  />
+                                </AdminField>
+
+                                <button
+                                  type="submit"
+                                  className="min-h-12 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2 lg:col-span-5"
+                                >
+                                  Agregar variante
+                                </button>
+                              </form>
+                            </details>
+                          </section>
+            )}
+
+            {saleMode === "configurable" && (
+              <section className="rounded-[1.5rem] border border-white/10 bg-neutral-950 p-5 sm:p-6">
                 <SectionHeader
-                  eyebrow="Variantes"
-                  title="Tamaños, precios y stock"
-                  description="Cada variante solo necesita un nombre, costo de proveedor, precio de venta y stock."
+                  eyebrow="Configurador"
+                  title="Opciones y precio dinámico"
+                  description="Define hasta dos selectores y una cantidad configurable. El precio se calcula desde el costo del proveedor y el margen de Samora."
                 />
 
-                <span className="w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/45">
-                  {variantList.length} {variantList.length === 1 ? "variante" : "variantes"}
-                </span>
-              </div>
-
-              {variantList.length > 0 && (
-                <div className="mt-6 space-y-3">
-                  {variantList.map((variant) => (
-                    <details
-                      key={variant.id}
-                      className="group rounded-2xl border border-white/10 bg-black/40"
-                    >
-                      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 [&::-webkit-details-marker]:hidden">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">
-                            {variant.name ?? variant.option_1_value ?? "Variante"}
-                          </p>
-                          <p className="mt-1 text-xs text-white/40">
-                            ${Number(variant.price_cop ?? 0).toLocaleString("es-CO")} · Stock {Number(variant.stock ?? 0)}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`rounded-full border px-2.5 py-1 text-[10px] ${
-                              variant.is_active !== false
-                                ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-                                : "border-white/10 bg-white/[0.04] text-white/45"
-                            }`}
-                          >
-                            {variant.is_active !== false ? "Activa" : "Oculta"}
-                          </span>
-                          <span className="text-sm text-white/40 transition group-open:rotate-180">
-                            ↓
-                          </span>
-                        </div>
-                      </summary>
-
-                      <div className="border-t border-white/10 p-4">
-                        <form
-                          action={updateVariantAction}
-                          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5"
-                        >
-                          <input type="hidden" name="product_id" value={currentProduct.id} />
-                          <input type="hidden" name="variant_id" value={variant.id} />
-
-                          <AdminField label="Nombre / tamaño">
-                            <input
-                              name="name"
-                              required
-                              placeholder="Ej: 20x30"
-                              defaultValue={variant.name ?? variant.option_1_value ?? ""}
-                              className={inputClass}
-                            />
-                          </AdminField>
-
-                          <VariantPricingFields
-                            defaultCost={variant.supplier_cost_cop ?? 0}
-                            defaultMarkup={variant.markup_percent ?? 30}
-                            defaultPrice={variant.price_cop ?? 0}
-                          />
-
-                          <AdminField label="Stock">
-                            <input
-                              name="stock"
-                              type="number"
-                              min="0"
-                              required
-                              defaultValue={variant.stock ?? 0}
-                              className={inputClass}
-                            />
-                          </AdminField>
-
-                          <label className="flex min-h-12 items-center gap-3 rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white/60 sm:col-span-2 lg:col-span-5">
-                            <input
-                              name="is_active"
-                              type="checkbox"
-                              defaultChecked={variant.is_active !== false}
-                            />
-                            Mostrar esta variante en la tienda
-                          </label>
-
-                          <button
-                            type="submit"
-                            className="min-h-12 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2 lg:col-span-5"
-                          >
-                            Guardar variante
-                          </button>
-                        </form>
-
-                        <form action={deleteVariantAction} className="mt-3">
-                          <input type="hidden" name="product_id" value={currentProduct.id} />
-                          <input type="hidden" name="variant_id" value={variant.id} />
-                          <button
-                            type="submit"
-                            className="text-sm text-red-300 transition hover:text-red-200"
-                          >
-                            Eliminar variante
-                          </button>
-                        </form>
-                      </div>
-                    </details>
-                  ))}
-                </div>
-              )}
-
-              <details className="group mt-6 rounded-2xl border border-dashed border-white/15 bg-black/40">
-                <summary className="cursor-pointer list-none px-4 py-4 text-sm font-medium text-white/70 transition hover:text-white [&::-webkit-details-marker]:hidden">
-                  + Agregar nueva variante
-                </summary>
-
-                <form
-                  action={createVariantAction}
-                  className="grid gap-4 border-t border-white/10 p-4 sm:grid-cols-2 lg:grid-cols-5"
-                >
-                  <input type="hidden" name="product_id" value={currentProduct.id} />
-
-                  <AdminField label="Nombre / tamaño">
-                    <input
-                      name="name"
-                      required
-                      placeholder="Ej: 20x30"
-                      className={inputClass}
-                    />
-                  </AdminField>
-
-                  <VariantPricingFields
-                    defaultCost={0}
-                    defaultMarkup={30}
-                    defaultPrice={0}
+                <div className="mt-6">
+                  <ProductConfiguratorAdmin
+                    productId={currentProduct.id}
+                    initialConfiguration={productConfiguration}
                   />
-
-                  <AdminField label="Stock">
-                    <input
-                      name="stock"
-                      type="number"
-                      min="0"
-                      required
-                      defaultValue="0"
-                      className={inputClass}
-                    />
-                  </AdminField>
-
-                  <button
-                    type="submit"
-                    className="min-h-12 rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:scale-[1.02] sm:col-span-2 lg:col-span-5"
-                  >
-                    Agregar variante
-                  </button>
-                </form>
-              </details>
-            </section>
+                </div>
+              </section>
+            )}
 
             <section className="rounded-[1.5rem] border border-red-400/15 bg-red-400/[0.035] p-5 sm:p-6">
               <p className="text-xs uppercase tracking-[0.25em] text-red-300/60">

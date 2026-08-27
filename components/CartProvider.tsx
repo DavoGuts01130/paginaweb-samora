@@ -18,6 +18,9 @@ export type CartItem = {
   variant_sku?: string | null;
   product_category?: string | null;
   product_subcategory?: string | null;
+  configuration_key?: string | null;
+  configuration_quantity?: number | null;
+  selected_options?: Record<string, string | number> | null;
 };
 
 type CartContextType = {
@@ -54,6 +57,24 @@ function getSafeQuantity(quantity: number, stock: number | null | undefined) {
   return Math.min(safeQuantity, stockLimit);
 }
 
+function inferProductId(item: CartItem) {
+  if (item.product_id) return item.product_id;
+
+  const rawId = String(item.id ?? "");
+  return rawId.includes(":") ? rawId.split(":")[0] : rawId;
+}
+
+function normalizeSelectedOptions(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+      key,
+      typeof entry === "number" ? entry : String(entry ?? ""),
+    ])
+  );
+}
+
 function normalizeCartItem(item: CartItem) {
   const safeQuantity = getSafeQuantity(item.quantity, item.stock);
 
@@ -62,7 +83,7 @@ function normalizeCartItem(item: CartItem) {
   return {
     ...item,
     id: String(item.id),
-    product_id: item.product_id ?? item.id,
+    product_id: inferProductId(item),
     variant_id: item.variant_id ?? null,
     variant_name: item.variant_name ?? null,
     variant_option_label: item.variant_option_label ?? null,
@@ -70,6 +91,13 @@ function normalizeCartItem(item: CartItem) {
     variant_sku: item.variant_sku ?? null,
     product_category: item.product_category ?? null,
     product_subcategory: item.product_subcategory ?? null,
+    configuration_key: item.configuration_key ?? null,
+    configuration_quantity:
+      item.configuration_quantity === null ||
+      item.configuration_quantity === undefined
+        ? null
+        : Number(item.configuration_quantity),
+    selected_options: normalizeSelectedOptions(item.selected_options),
     price: Number(item.price ?? 0),
     quantity: safeQuantity,
     stock: item.stock ?? null,
@@ -123,7 +151,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return currentItems;
       }
 
-      const existingItem = currentItems.find((cartItem) => cartItem.id === item.id);
+      const existingItem = currentItems.find(
+        (cartItem) => cartItem.id === item.id
+      );
 
       if (existingItem) {
         return currentItems.map((cartItem) => {
@@ -151,7 +181,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   function removeItem(id: string) {
-    setItems((currentItems) => currentItems.filter((item) => item.id !== id));
+    setItems((currentItems) =>
+      currentItems.filter((item) => item.id !== id)
+    );
   }
 
   function updateItemQuantity(id: string, quantity: number) {
@@ -180,7 +212,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const totalPrice = useMemo(
-    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    () =>
+      items.reduce(
+        (sum, item) => sum + Number(item.price ?? 0) * item.quantity,
+        0
+      ),
     [items]
   );
 

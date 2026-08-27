@@ -3,6 +3,12 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import AddToCartButton from "@/components/AddToCartButton";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getConfigurationPriceRange,
+  normalizeConfiguration,
+  toSaleMode,
+  type ProductConfiguration,
+} from "@/lib/product-config";
 
 type Props = {
   params: Promise<{
@@ -25,6 +31,7 @@ type Product = {
   category_id: string | null;
   subcategory_id: string | null;
   has_variants: boolean | null;
+  product_type: string | null;
 };
 
 type ProductVariant = {
@@ -68,22 +75,45 @@ function formatCOP(value: number | null | undefined) {
 }
 
 function getStockFromProduct(product: Product, variants: ProductVariant[]) {
-  if (product.has_variants && variants.length > 0) {
-    return variants.reduce((sum, variant) => sum + Math.max(Number(variant.stock ?? 0), 0), 0);
+  const mode = toSaleMode(product.product_type, product.has_variants);
+
+  if (mode === "variant" && variants.length > 0) {
+    return variants.reduce(
+      (sum, variant) => sum + Math.max(Number(variant.stock ?? 0), 0),
+      0
+    );
   }
 
   return Math.max(Number(product.stock ?? 0), 0);
 }
 
-function getPriceLabel(product: Product, variants: ProductVariant[]) {
+function getPriceLabel(
+  product: Product,
+  variants: ProductVariant[],
+  configuration: ProductConfiguration | null
+) {
+  const mode = toSaleMode(product.product_type, product.has_variants);
+
+  if (mode === "configurable" && configuration) {
+    const range = getConfigurationPriceRange(configuration);
+
+    if (range.min > 0) {
+      return range.min === range.max
+        ? formatCOP(range.min)
+        : `${formatCOP(range.min)} - ${formatCOP(range.max)}`;
+    }
+  }
+
   const variantPrices = variants
     .map((variant) => Number(variant.price_cop ?? 0))
     .filter((price) => price > 0);
 
-  if (product.has_variants && variantPrices.length > 0) {
+  if (mode === "variant" && variantPrices.length > 0) {
     const min = Math.min(...variantPrices);
     const max = Math.max(...variantPrices);
-    return min === max ? formatCOP(min) : `${formatCOP(min)} - ${formatCOP(max)}`;
+    return min === max
+      ? formatCOP(min)
+      : `${formatCOP(min)} - ${formatCOP(max)}`;
   }
 
   return formatCOP(product.price);
@@ -143,7 +173,12 @@ export default async function ProductDetailPage({ params }: Props) {
 
   const productRecord = product as Product;
 
-  const [{ data: variants }, { data: category }, { data: subcategory }] = await Promise.all([
+  const [
+    { data: variants },
+    { data: category },
+    { data: subcategory },
+    { data: configuration },
+  ] = await Promise.all([
     supabase
       .from("product_variants")
       .select("id, product_id, name, sku, option_1_label, option_1_value, option_2_label, option_2_value, price_cop, stock, is_active")
@@ -164,6 +199,15 @@ export default async function ProductDetailPage({ params }: Props) {
           .eq("id", productRecord.subcategory_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    toSaleMode(productRecord.product_type, productRecord.has_variants) ===
+    "configurable"
+      ? supabase
+          .from("product_configurations")
+          .select("*")
+          .eq("product_id", productRecord.id)
+          .eq("is_active", true)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const variantList = ((variants ?? []) as ProductVariant[]).filter(
@@ -171,6 +215,13 @@ export default async function ProductDetailPage({ params }: Props) {
   );
   const categoryRecord = category as ProductCategory | null;
   const subcategoryRecord = subcategory as ProductSubcategory | null;
+  const productConfiguration = normalizeConfiguration(
+    configuration as ProductConfiguration | null
+  );
+  const saleMode = toSaleMode(
+    productRecord.product_type,
+    productRecord.has_variants
+  );
   const stock = getStockFromProduct(productRecord, variantList);
   const stockPercentage = Math.min((stock / 10) * 100, 100);
 
@@ -258,7 +309,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <span className="text-3xl font-bold">
-                  {variantList.length > 0 ? "Desde " : ""}{getPriceLabel(productRecord, variantList)}
+                  {saleMode !== "single" ? "Desde " : ""}{getPriceLabel(productRecord, variantList, productConfiguration)}
                 </span>
 
                 <span className="rounded-full border border-white/10 bg-black px-4 py-2 text-sm text-white/50">
@@ -317,7 +368,12 @@ export default async function ProductDetailPage({ params }: Props) {
                         product_category: categoryRecord?.name ?? null,
                         product_subcategory: subcategoryRecord?.name ?? null,
                       }}
-                      variants={variantList}
+                      variants={saleMode === "variant" ? variantList : []}
+                      configuration={
+                        saleMode === "configurable"
+                          ? productConfiguration
+                          : null
+                      }
                     />
 
                     <a

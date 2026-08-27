@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import PrintProposalButton from "@/components/PrintProposalButton";
 import { createClient } from "@/lib/supabase/server";
+import { getSelectedOptionsText } from "@/lib/product-config";
 
 export const metadata: Metadata = {
   title: "Comprobante de pedido | Admin Samora",
@@ -18,6 +19,12 @@ type StoreOrderItem = {
   product_name: string;
   product_slug: string | null;
   product_image_url: string | null;
+  selected_options: Record<string, string | number> | null;
+  configuration_key: string | null;
+  configuration_quantity: number | null;
+  variant_name: string | null;
+  variant_option_label: string | null;
+  variant_option_value: string | null;
   unit_price_cop: number;
   quantity: number;
   total_cop: number;
@@ -149,6 +156,29 @@ function getTrackingUrl(code: string) {
   return `${getPublicSiteUrl()}/seguimiento?code=${encodeURIComponent(code)}`;
 }
 
+function getItemOptionsLabel(item: StoreOrderItem) {
+  const configured = getSelectedOptionsText(item.selected_options);
+  if (configured) return configured;
+
+  if (
+    item.variant_name &&
+    item.variant_option_value &&
+    item.variant_name.trim().toLowerCase() ===
+      item.variant_option_value.trim().toLowerCase()
+  ) {
+    return item.variant_name;
+  }
+
+  return [
+    item.variant_name,
+    item.variant_option_label && item.variant_option_value
+      ? `${item.variant_option_label}: ${item.variant_option_value}`
+      : item.variant_option_value,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export default async function StoreOrderReceiptPage({
   params,
 }: {
@@ -204,6 +234,12 @@ export default async function StoreOrderReceiptPage({
         product_name,
         product_slug,
         product_image_url,
+        selected_options,
+        configuration_key,
+        configuration_quantity,
+        variant_name,
+        variant_option_label,
+        variant_option_value,
         unit_price_cop,
         quantity,
         total_cop
@@ -310,7 +346,14 @@ export default async function StoreOrderReceiptPage({
                   {items.length > 0 ? (
                     items.map((item) => (
                       <div key={item.id} className="products-row products-item">
-                        <span className="product-name">{item.product_name}</span>
+                        <span className="product-name">
+                          {item.product_name}
+                          {getItemOptionsLabel(item) && (
+                            <small className="product-options">
+                              {getItemOptionsLabel(item)}
+                            </small>
+                          )}
+                        </span>
                         <span className="center">{item.quantity}</span>
                         <span className="right">{formatCOP(item.unit_price_cop)}</span>
                         <span className="right strong">{formatCOP(item.total_cop)}</span>
@@ -552,6 +595,15 @@ function ReceiptStyles() {
       .product-name,
       .strong {
         font-weight: 800;
+      }
+
+      .product-options {
+        display: block;
+        margin-top: 4px;
+        font-size: 9.5px;
+        font-weight: 600;
+        line-height: 1.35;
+        color: #707070;
       }
 
       .center {

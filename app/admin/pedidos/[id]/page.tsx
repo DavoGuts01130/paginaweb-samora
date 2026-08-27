@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import Navbar from "@/components/Navbar";
 import AdminStoreDropdown from "@/components/AdminStoreDropdown";
 import { createClient } from "@/lib/supabase/server";
+import { getSelectedOptionsText } from "@/lib/product-config";
 
 type StoreOrderItem = {
   id: string;
@@ -14,6 +15,9 @@ type StoreOrderItem = {
   variant_option_label: string | null;
   variant_option_value: string | null;
   variant_sku: string | null;
+  selected_options: Record<string, string | number> | null;
+  configuration_key: string | null;
+  configuration_quantity: number | null;
   product_category: string | null;
   product_subcategory: string | null;
   product_name: string;
@@ -180,6 +184,23 @@ function getStatusClass(status: string) {
 }
 
 function getItemVariantLabel(item: StoreOrderItem) {
+  const configured = getSelectedOptionsText(item.selected_options);
+  if (configured) return configured;
+
+  if (
+    item.variant_name &&
+    item.variant_option_value &&
+    item.variant_name.trim().toLowerCase() ===
+      item.variant_option_value.trim().toLowerCase()
+  ) {
+    return [
+      item.variant_name,
+      item.variant_sku ? `SKU: ${item.variant_sku}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
   const option = [item.variant_option_label, item.variant_option_value]
     .filter(Boolean)
     .join(": ");
@@ -514,6 +535,9 @@ export default async function AdminPedidoDetailPage({
         variant_option_label,
         variant_option_value,
         variant_sku,
+        selected_options,
+        configuration_key,
+        configuration_quantity,
         product_category,
         product_subcategory,
         product_name,

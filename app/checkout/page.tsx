@@ -5,6 +5,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useCart } from "@/components/CartProvider";
 import { createClient } from "@/lib/supabase/client";
+import { getSelectedOptionsText } from "@/lib/product-config";
 
 const whatsappNumber =
   process.env.NEXT_PUBLIC_SAMORA_WHATSAPP_NUMBER ?? "573138429568";
@@ -27,6 +28,24 @@ function buildOrderCode() {
 
 function normalizePhone(phone: string) {
   return phone.replace(/\D/g, "");
+}
+
+function getVariantSummary(item: {
+  variant_name?: string | null;
+  variant_option_value?: string | null;
+}) {
+  if (
+    item.variant_name &&
+    item.variant_option_value &&
+    item.variant_name.trim().toLowerCase() ===
+      item.variant_option_value.trim().toLowerCase()
+  ) {
+    return item.variant_name;
+  }
+
+  return [item.variant_name, item.variant_option_value]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export default function CheckoutPage() {
@@ -88,12 +107,16 @@ export default function CheckoutPage() {
       }
 
       const cartItems = items.map((item) => ({
-        product_id: item.id,
+        product_id: item.product_id ?? item.id.split(":")[0],
+        variant_id: item.variant_id ?? null,
+        configuration_key: item.configuration_key ?? null,
+        configuration_quantity: item.configuration_quantity ?? null,
+        selected_options: item.selected_options ?? {},
         quantity: item.quantity,
       }));
 
       const { data: createdOrder, error: orderError } = await supabase.rpc(
-        "create_store_order_with_stock_check",
+        "create_store_order_v2",
         {
           p_order_code: orderCode,
           p_customer_name: customerName.trim(),
@@ -135,10 +158,15 @@ export default function CheckoutPage() {
   }
 
   const productList = items
-    .map(
-      (item) =>
-        `• ${item.name} x${item.quantity} (${formatCOP(item.price * item.quantity)})`
-    )
+    .map((item) => {
+      const options = getSelectedOptionsText(item.selected_options);
+      const variant = getVariantSummary(item);
+      const detail = options || variant;
+
+      return `• ${item.name}${detail ? ` (${detail})` : ""} x${item.quantity} (${formatCOP(
+        item.price * item.quantity
+      )})`;
+    })
     .join("\n");
 
   const confirmationMessage = encodeURIComponent(
@@ -377,6 +405,13 @@ export default function CheckoutPage() {
 
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">{item.name}</p>
+                        {(getSelectedOptionsText(item.selected_options) ||
+                          item.variant_name) && (
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/40">
+                            {getSelectedOptionsText(item.selected_options) ||
+                              getVariantSummary(item)}
+                          </p>
+                        )}
                         <p className="mt-1 text-white/40">x{item.quantity}</p>
                       </div>
 
